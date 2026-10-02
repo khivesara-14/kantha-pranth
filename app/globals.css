@@ -1,8 +1,0 @@
-* { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; background: #f4eee5; }
-body { font-family: Arial, Helvetica, sans-serif; }
-.app-shell { min-height: 100vh; width: 100%; display: flex; justify-content: center; background: #f4eee5; }
-.prototype-frame { width: 100%; min-height: 100vh; border: 0; display: block; }
-@media (min-width: 700px) {
-  .prototype-frame { max-width: 520px; box-shadow: 0 0 40px rgba(0,0,0,.12); }
-}
