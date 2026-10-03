@@ -1,0 +1,24 @@
+"use client";
+import{useEffect,useState}from"react";
+import{supabase}from"../lib/supabase";
+
+const LOC=["Nagarbhavi","Chandra Layout","Vijayanagar","Rajajinagar","Jayanagar","Basavanagudi","Malleswaram","Indiranagar","Yelahanka","Whitefield"];
+
+export default function Page(){
+ const[session,setSession]=useState(null),[view,setView]=useState("welcome"),[mode,setMode]=useState("login");
+ const[email,setEmail]=useState(""),[password,setPassword]=useState(""),[name,setName]=useState(""),[locality,setLocality]=useState("Chandra Layout"),[error,setError]=useState(""),[busy,setBusy]=useState(false);
+ useEffect(()=>{supabase.auth.getSession().then(({data})=>{setSession(data.session);if(data.session)setView("home")});const{data}=supabase.auth.onAuthStateChange((_event,s)=>{setSession(s);if(s)setView("home")});return()=>data.subscription.unsubscribe()},[]);
+ async function authenticate(){setBusy(true);setError("");const result=mode==="login"?await supabase.auth.signInWithPassword({email:email.trim(),password}):await supabase.auth.signUp({email:email.trim(),password,options:{data:{full_name:name.trim(),locality}}});if(result.error)setError(result.error.message);else if(mode==="signup"&&!result.data.session)setError("Check your email to confirm your account, then sign in.");else setView("home");setBusy(false)}
+ if(view==="welcome")return <Welcome start={()=>{setMode("login");setView("auth")}} guest={()=>setView("home")}/>;
+ if(view==="auth")return <Auth mode={mode} setMode={setMode} email={email} setEmail={setEmail} password={password} setPassword={setPassword} name={name} setName={setName} locality={locality} setLocality={setLocality} error={error} busy={busy} submit={authenticate} back={()=>setView("welcome")}/>;
+ const displayName=name||session?.user?.user_metadata?.full_name||"Community Member";
+ return <div className="shell"><header><div className="logo">☼</div><div><b>KANTHA PRANTH</b><small>Jain Community · Bengaluru</small></div><div className="avatar">{displayName.slice(0,2).toUpperCase()}</div></header><main className="content"><div className="pill">⌖ {locality}⌄</div><div className="hero"><span>KANTHA PRANTH</span><h1>Good Morning,<br/><strong>{displayName}</strong></h1><p>Connect with your Jain community.</p></div><div className="search">⌕ Search posts, services, events…</div><h2>Explore your community</h2><div className="grid"><button><b>👨‍👩‍👧‍👦 Family Directory</b><small>Find Jain families</small></button><button><b>📅 Events</b><small>Community events</small></button><button><b>🛍️ Buy & Sell</b><small>Marketplace</small></button><button><b>🛠️ Services</b><small>Local services</small></button><button><b>🏢 Businesses</b><small>Jain businesses</small></button><button><b>🤝 Community Help</b><small>Support each other</small></button></div></main><nav><button className="active">⌂<small>Home</small></button><button>♧<small>Community</small></button><button className="plus">＋</button><button>🛒<small>Market</small></button><button>◉<small>Profile</small></button></nav></div>;
+}
+
+function Welcome({start,guest}){
+ return <main className="welcome"><div className="wl">☼</div><h1>KANTHA PRANTH</h1><h3>Jain Community · Bengaluru</h3><p>A trusted platform for our Jain community</p><div className="features">{["♙ Connect Members","⌕ Find Services","🛒 Buy & Sell","▣ Stay Updated","⌖ Get Local","♡ Support"].map(x=><span key={x}>{x}</span>)}</div><button className="primary" onClick={start}>Get Started</button><button className="link" onClick={guest}>Continue as guest</button><small>Built for the Jain Community of Bengaluru</small></main>;
+}
+
+function Auth(p){
+ return <main className="auth"><button className="back" onClick={p.back}>‹ Back</button><div className="wl mini">☼</div><h1>{p.mode==="login"?"Welcome Back":"Create Account"}</h1><p>{p.mode==="login"?"Sign in to continue":"Join the Jain community in Bengaluru"}</p>{p.mode==="signup"&&<><input placeholder="Full name" value={p.name} onChange={e=>p.setName(e.target.value)}/><select value={p.locality} onChange={e=>p.setLocality(e.target.value)}>{LOC.map(x=><option key={x}>{x}</option>)}</select></>}<input type="email" placeholder="Email address" value={p.email} onChange={e=>p.setEmail(e.target.value)}/><input type="password" placeholder="Password" value={p.password} onChange={e=>p.setPassword(e.target.value)}/>{p.error&&<div className="error">{p.error}</div>}<button className="primary" disabled={p.busy} onClick={p.submit}>{p.busy?"Please wait…":p.mode==="login"?"Sign In":"Create Account"}</button><button className="secondary" onClick={()=>p.setMode(p.mode==="login"?"signup":"login")}>{p.mode==="login"?"Create new account":"Already have an account? Sign in"}</button></main>;
+}
