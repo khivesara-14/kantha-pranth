@@ -452,7 +452,6 @@ export default function Home() {
     setAuthFeedback('');
     await loadUserProfile(data.session);
     setToast('Welcome back to Kantha Pranth');
-    }
     } catch (error) {
       setAuthBusy(false);
       setAuthFeedback(error?.message || 'Something went wrong. Please try again.');
