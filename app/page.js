@@ -390,7 +390,8 @@ export default function Home() {
   }
 
   async function handleEmailAuth(e) {
-    e.preventDefault();
+    e?.preventDefault?.();
+    setAuthFeedback('');
     const cleanEmail = email.trim().toLowerCase();
     setAuthFeedback('');
 
@@ -403,6 +404,7 @@ export default function Home() {
 
     setAuthBusy(true);
 
+    try {
     if (!supabase) {
       setAuthenticated(true);
       setNeedsProfile(true);
@@ -450,6 +452,11 @@ export default function Home() {
     setAuthFeedback('');
     await loadUserProfile(data.session);
     setToast('Welcome back to Kantha Pranth');
+    }
+    } catch (error) {
+      setAuthBusy(false);
+      setAuthFeedback(error?.message || 'Something went wrong. Please try again.');
+    }
   }
 
   async function resetPassword() {
