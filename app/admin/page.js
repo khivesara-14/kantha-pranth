@@ -31,6 +31,8 @@ export default function AdminPage() {
   const [postSearch, setPostSearch] = useState('');
   const [postType, setPostType] = useState('All');
   const [selectedPost, setSelectedPost] = useState(null);
+  const [reports, setReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
 
   useEffect(() => {
     if (!supabase) {
@@ -49,6 +51,7 @@ export default function AdminPage() {
         loadStats();
         loadMembers();
         loadPosts();
+        loadReports();
       }
     }).catch(() => {
       if (mounted) {
@@ -102,6 +105,22 @@ export default function AdminPage() {
     loadStats();
     loadMembers();
     loadPosts();
+    loadReports();
+  }
+
+  async function loadReports() {
+    if (!supabase) return;
+    setReportsLoading(true);
+    const { data: reportRows, error } = await supabase.from('post_reports').select('id, post_id, reporter_id, reason, status, created_at').order('created_at', { ascending: false });
+    if (error) setStatsError(error.message || 'Could not load reports.');
+    setReports(reportRows || []);
+    setReportsLoading(false);
+  }
+
+  async function updateReport(report, status) {
+    const { error } = await supabase.from('post_reports').update({ status }).eq('id', report.id);
+    if (error) return setStatsError(error.message || 'Could not update report.');
+    setReports(prev => prev.map(x => x.id === report.id ? { ...x, status } : x));
   }
 
   async function loadStats() {
@@ -612,7 +631,33 @@ export default function AdminPage() {
           </div>
         )}
 
-        {!['Dashboard', 'Members', 'Posts'].includes(active) && (
+
+        {active === 'Reports' && (
+          <div>
+            <div style={styles.memberToolbar}>
+              <button onClick={loadReports} style={styles.refresh}>↻ Refresh reports</button>
+            </div>
+            {reportsLoading ? <div style={styles.empty}>Loading reports…</div> : (
+              <div style={styles.postList}>
+                {reports.map(report => (
+                  <div key={report.id} style={styles.reportCard}>
+                    <div>
+                      <b style={styles.postTitle}>🚩 {report.reason}</b>
+                      <small style={styles.postMeta}>Post: {report.post_id} · {new Date(report.created_at).toLocaleString()}</small>
+                      <span style={styles.reportStatus}>{report.status}</span>
+                    </div>
+                    <div style={styles.reportActions}>
+                      {report.status === 'pending' && <><button style={styles.smallButton} onClick={() => updateReport(report, 'reviewed')}>Mark reviewed</button><button style={styles.deleteButtonSmall} onClick={() => updateReport(report, 'dismissed')}>Dismiss</button></>}
+                    </div>
+                  </div>
+                ))}
+                {!reports.length && <div style={styles.empty}>No reports. The community is clear.</div>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!['Dashboard', 'Members', 'Posts', 'Reports'].includes(active) && (
           <div style={styles.coming}>
             <div style={styles.comingIcon}>◈</div>
             <h2 style={styles.comingTitle}>{active}</h2>
@@ -713,6 +758,11 @@ const styles = {
   detailLabel: { display:'block', fontSize:9, color:'#8b7d75', marginBottom:5 },
   detailValue: { display:'block', fontSize:11, color:'#332522', lineHeight:1.4 },
   verifyButton: { width:'100%', height:46, border:0, borderRadius:12, background:'#7c1d25', color:'#fff', fontWeight:800, cursor:'pointer' },
+  reportCard: { display:'flex', justifyContent:'space-between', gap:14, alignItems:'center', border:'1px solid #e7ddd3', background:'#fffdf9', borderRadius:15, padding:14 },
+  reportStatus: { display:'inline-block', marginTop:7, fontSize:9, padding:'4px 7px', borderRadius:7, background:'#f3eadf', color:'#7c1d25' },
+  reportActions: { display:'flex', gap:7, flexWrap:'wrap', justifyContent:'flex-end' },
+  smallButton: { border:0, borderRadius:9, padding:'8px 10px', background:'#7c1d25', color:'#fff', fontSize:10, fontWeight:800, cursor:'pointer' },
+  deleteButtonSmall: { border:'1px solid #ead2ce', borderRadius:9, padding:'8px 10px', background:'#fff5f3', color:'#9a302b', fontSize:10, fontWeight:800, cursor:'pointer' },
   coming: { background:'#fffdf9', border:'1px solid #e7ddd3', borderRadius:22, padding:50, textAlign:'center', minHeight:300 },
   comingIcon: { fontSize:28 },
   comingTitle: { color:'#7c1d25' },
