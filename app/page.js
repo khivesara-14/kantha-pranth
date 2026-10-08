@@ -1283,7 +1283,6 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
     const body = commentText.trim();
     if (!body) return;
     if (!supabase || !currentUserId) return onToast('Please sign in to comment');
-    if (!isVerifiedUser) return onToast('Only verified community members can comment');
     const { error } = await supabase.from('post_comments').insert({ post_id: post.id, user_id: currentUserId, body, parent_id: replyTo || null });
     if (error) return onToast(error.message);
     setCommentText('');
