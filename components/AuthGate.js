@@ -12,6 +12,7 @@ export default function AuthGate({ children }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
   useEffect(() => {
     if (!supabase) {
@@ -98,6 +99,10 @@ export default function AuthGate({ children }) {
     localStorage.setItem('kp-guest', '1');
     setSession({ guest: true });
   }
+
+  // The admin portal has its own authentication screen. Do not let the community
+  // welcome gate block /admin before the admin page can perform its own check.
+  if (isAdminRoute) return children;
 
   if (checking) {
     return (
