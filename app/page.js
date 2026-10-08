@@ -52,6 +52,8 @@ export default function Home() {
   const [posts, setPosts] = useState(initialPosts);
   const [communityFilter, setCommunityFilter] = useState('All');
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [memberPosts, setMemberPosts] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [listings, setListings] = useState(initialListings);
   const [showPost, setShowPost] = useState(false);
@@ -134,6 +136,22 @@ export default function Home() {
       demoAuthenticated: authenticated
     }));
   }, [locality, posts, listings, userName, profileLocality, authenticated]);
+
+  async function openMemberProfile(userId) {
+    if (!supabase || !userId) return;
+    const [{ data: profile, error: profileError }, { data: postRows }] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, avatar_url, bio, locality_id, is_verified, created_at').eq('id', userId).maybeSingle(),
+      supabase.from('posts').select('id, author_id, locality_id, type, title, body, image_url, created_at').eq('author_id', userId).order('created_at', { ascending:false }).limit(10)
+    ]);
+    if (profileError || !profile) return setToast('Could not load member profile');
+    let localityName = 'Bengaluru';
+    if (profile.locality_id) {
+      const { data } = await supabase.from('localities').select('name').eq('id', profile.locality_id).maybeSingle();
+      localityName = data?.name || localityName;
+    }
+    setSelectedMember({ ...profile, localityName });
+    setMemberPosts((postRows || []).map(p => ({ ...p, author_id:userId, author:profile.full_name || 'Community Member', area:localityName, time:formatPostTime(p.created_at), text:p.body, avatar:initialsFromName(profile.full_name || 'Community Member'), image_url:p.image_url || '' })));
+  }
 
   async function loadNotifications() {
     if (!supabase || !currentUserId) return;
@@ -767,7 +785,7 @@ export default function Home() {
           <EventCard event={events[0]} onClick={() => setSelectedEvent(events[0])} />
         </>}
 
-        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => setShowPost(true)}>＋ Post</button>}><div className="filter-row">{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
+        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => setShowPost(true)}>＋ Post</button>}><div className="filter-row">{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
 
         {active === 'family' && <Page title="Family Directory" subtitle="Connect with Jain families in your community" action={authenticated && !guestMode && supabase ? <button className="primary small" onClick={() => setShowFamilyForm(true)}>＋ Add family</button> : null}>
           <div className="directory-banner"><div className="directory-icon">👨‍👩‍👧‍👦</div><div><b>A community family directory</b><p>Choose what your family shares. Phone numbers and private details are never displayed by default.</p></div></div>
@@ -782,6 +800,8 @@ export default function Home() {
         {active === 'services' && <Page title="Services" subtitle="Trusted people & businesses in your community"><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search doctors, CA, lawyers..." /></div><div className="service-grid">{['Doctors','CA','Lawyers','Education','Home Services','Travel','Catering','Other'].map(x => <button className="service-cat" key={x}><span>{x === 'Doctors' ? '🩺' : x === 'CA' ? '📊' : x === 'Lawyers' ? '⚖️' : x === 'Travel' ? '✈️' : '✦'}</span><b>{x}</b></button>)}</div><SectionHeader title="Featured services" action="See all" />{filteredServices.map(s => <ServiceCard key={s.name} service={s} onToast={setToast} />)}</Page>}
 
         {active === 'events' && <Page title="Events" subtitle="Meet, celebrate and contribute"><div className="event-tabs"><Pill tone="active">Upcoming</Pill><Pill>My events</Pill><Pill>Past</Pill></div>{events.map(e => <EventCard key={e.id} event={e} onClick={() => setSelectedEvent(e)} />)}</Page>}
+
+        {selectedMember && <Modal title="Community Profile" close={() => { setSelectedMember(null); setMemberPosts([]); }}><div style={{ textAlign:'center', padding:'8px 0 18px' }}><Avatar initials={initialsFromName(selectedMember.full_name || 'Community Member')} large /><h2 style={{ margin:'12px 0 4px' }}>{selectedMember.full_name || 'Community Member'} {selectedMember.is_verified && <span className="verified">✓ Verified</span>}</h2><p style={{ margin:0, color:'#8b7d75', fontSize:12 }}>⌖ {selectedMember.localityName}</p>{selectedMember.bio && <p style={{ fontSize:12, lineHeight:1.5, color:'#5f534d', marginTop:10 }}>{selectedMember.bio}</p>}<small style={{ color:'#9a8e86' }}>Member since {new Date(selectedMember.created_at).toLocaleDateString()}</small></div><h3 style={{ margin:'10px 0' }}>Recent posts</h3>{memberPosts.length ? memberPosts.map(p => <PostCard key={p.id} post={p} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner">No posts yet.</div>}</Modal>}
 
         {active === 'profile' && <Page title="My Profile" subtitle="Your community identity"><div className="profile-card"><Avatar initials={initialsFromName(userName || 'Guest')} large /><h2>{userName || 'Guest Member'}</h2><p>Kantha Pranth member · {locality}</p><div className="profile-stats"><div><b>{posts.filter(p => p.author === (userName || 'Community Member')).length}</b><span>Posts</span></div><div><b>0</b><span>Listings</span></div><div><b>1</b><span>Events</span></div></div></div><div className="settings-list">{['Edit profile','My listings','Saved posts','Privacy & visibility','Help & support'].map(x => <button key={x} onClick={() => setToast(`${x} will be available in the next build`)}><span>{x}</span><b>›</b></button>)}</div>{authenticated ? <button className="outline full" onClick={signOut}>Sign out</button> : <button className="outline full" onClick={() => setShowLogin(true)}>Sign in / Create account</button>}</Page>}
 
@@ -1048,7 +1068,7 @@ function ProfileSetupScreen({ userName, setUserName, profileLocality, setProfile
 
 function Page({ title, subtitle, action, children }) { return <div className="page"><div className="page-head"><div><p className="eyebrow">KANTHA PRANTH</p><h1>{title}</h1><p>{subtitle}</p></div>{action}</div>{children}</div>; }
 function SectionHeader({ title, action, onClick }) { return <div className="section-head"><h2>{title}</h2>{action && <button onClick={onClick}>{action} ›</button>}</div>; }
-function PostCard({ post, onToast, currentUserId, authenticated, guestMode, onPostChanged }) {
+function PostCard({ post, onToast, currentUserId, authenticated, guestMode, onPostChanged, onProfile }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [commentCount, setCommentCount] = useState(post.comments || 0);
@@ -1187,7 +1207,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, onPo
   }
 
   return <article className="post-card">
-    <div className="post-top"><Avatar initials={post.avatar} /><div className="post-author"><b>{post.author}</b><span>{post.time} · {post.area}</span></div><button className="more" onClick={() => setShowMenu(x => !x)}>•••</button></div>
+    <div className="post-top"><button type="button" onClick={() => post.author_id && onProfile?.(post.author_id)} style={{ display:'flex', alignItems:'center', gap:10, border:0, background:'transparent', padding:0, textAlign:'left', cursor:post.author_id ? 'pointer' : 'default' }}><Avatar initials={post.avatar} /><div className="post-author"><b>{post.author}</b><span>{post.time} · {post.area}</span></div></button><button className="more" onClick={() => setShowMenu(x => !x)}>•••</button></div>
     {showMenu && <div style={{ display:'flex', flexWrap:'wrap', gap:7, margin:'8px 0 10px', justifyContent:'flex-end' }}>
       {isOwnPost ? <><button className="soft-btn" onClick={() => { setEditing(true); setShowMenu(false); }}>✏️ Edit</button><button className="soft-btn" onClick={deletePost}>🗑️ Delete</button></> : <><button className="soft-btn" onClick={toggleSaved}>{saved ? '🔖 Saved' : '🔖 Save'}</button><button className="soft-btn" onClick={reportPost}>🚩 Report</button></>}
       <button className="soft-btn" onClick={sharePost}>↗ Copy/share</button>
