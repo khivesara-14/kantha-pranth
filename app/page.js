@@ -77,6 +77,7 @@ export default function Home() {
   const [needsProfile, setNeedsProfile] = useState(false);
   const [profileBusy, setProfileBusy] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const [isVerifiedUser, setIsVerifiedUser] = useState(false);
   const [currentUserId, setCurrentUserId] = useState('');
   const [guestMode, setGuestMode] = useState(false);
@@ -231,6 +232,7 @@ export default function Home() {
     if (profile?.full_name) {
       setUserName(profile.full_name);
     }
+    setIsVerified(!!profile?.is_verified);
     setIsVerifiedUser(!!profile?.is_verified);
 
     if (profile?.locality_id) {
@@ -675,6 +677,9 @@ export default function Home() {
 
     if (!supabase || !authenticated || guestMode || !currentUserId) {
       return setToast('Please sign in to publish a community post');
+    }
+    if (!isVerified) {
+      return setToast('Only verified community members can publish posts');
     }
     if (!isVerifiedUser) return setToast('Only verified community members can publish posts');
 
@@ -1166,7 +1171,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
     e.preventDefault();
     const body = commentText.trim();
     if (!body) return;
-    if (!supabase || !authenticated || guestMode || !currentUserId) return onToast('Please sign in to comment');
+    if (!supabase || !currentUserId) return onToast('Please sign in to comment');
     if (!isVerifiedUser) return onToast('Only verified community members can comment');
     const { error } = await supabase.from('post_comments').insert({ post_id: post.id, user_id: currentUserId, body, parent_id: replyTo || null });
     if (error) return onToast(error.message);
@@ -1257,7 +1262,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
       <div style={{ display:'grid', gap:9, maxHeight:240, overflowY:'auto' }}>
         {comments.length ? comments.filter(c => !c.parent_id).map(c => <div key={c.id} style={{ background:'#faf7f2', borderRadius:12, padding:'9px 11px' }}><div style={{ display:'flex', justifyContent:'space-between', gap:8 }}><b style={{ fontSize:11 }}>{c.profiles?.full_name || 'Community Member'}</b><div style={{ display:'flex', gap:6 }}>{authenticated && !guestMode && <button className="more" onClick={() => setReplyTo(c.id)}>↩</button>}{c.user_id === currentUserId && <button className="more" onClick={() => deleteComment(c.id)}>×</button>}</div></div><div style={{ fontSize:12, marginTop:3 }}>{c.body}</div>{comments.filter(r => r.parent_id === c.id).map(r => <div key={r.id} style={{ margin:'8px 0 0 18px', padding:'8px', background:'#fff', borderRadius:10 }}><b style={{ fontSize:10 }}>{r.profiles?.full_name || 'Community Member'}</b><div style={{ fontSize:11, marginTop:2 }}>{r.body}</div>{r.user_id === currentUserId && <button className="more" onClick={() => deleteComment(r.id)}>×</button>}</div>)}</div>) : <small style={{ color:'#8c8179' }}>No comments yet. Be the first.</small>}
       </div>
-      {replyTo && <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:9, padding:'7px 9px', background:'#fff6e8', borderRadius:9, fontSize:10 }}><span>↩ Replying to a comment</span><button type="button" className="text-btn" onClick={() => setReplyTo(null)}>Cancel</button></div>}{authenticated && !guestMode && <form onSubmit={addComment} style={{ display:'flex', gap:7, marginTop:10 }}><input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder={replyTo ? "Write a reply…" : "Write a comment…"} style={{ flex:1, minWidth:0 }} /><button className="primary small" disabled={!commentText.trim()}>Post</button></form>}
+      {replyTo && <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:9, padding:'7px 9px', background:'#fff6e8', borderRadius:9, fontSize:10 }}><span>↩ Replying to a comment</span><button type="button" className="text-btn" onClick={() => setReplyTo(null)}>Cancel</button></div>}{(authenticated || guestMode) && currentUserId && <form onSubmit={addComment} style={{ display:'flex', gap:7, marginTop:10 }}><input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder={replyTo ? "Write a reply…" : "Write a comment…"} style={{ flex:1, minWidth:0 }} /><button className="primary small" disabled={!commentText.trim()}>Post</button></form>}
     </div>}
   </article>;
 }
