@@ -31,6 +31,8 @@ export default function AdminPage() {
   const [postSearch, setPostSearch] = useState('');
   const [postType, setPostType] = useState('All');
   const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedPostComments, setSelectedPostComments] = useState([]);
+  const [selectedPostLikes, setSelectedPostLikes] = useState(0);
   const [reports, setReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
 
@@ -182,15 +184,18 @@ export default function AdminPage() {
   async function loadPosts() {
     if (!supabase) return;
     setPostsLoading(true);
-
     const [
       { data: postRows, error: postError },
       { data: profileRows, error: profileError },
-      { data: localityRows, error: localityError }
+      { data: localityRows, error: localityError },
+      { data: likeRows, error: likeError },
+      { data: commentRows, error: commentError }
     ] = await Promise.all([
       supabase.from('posts').select('id, author_id, locality_id, type, title, body, created_at').order('created_at', { ascending: false }),
       supabase.from('profiles').select('id, full_name'),
-      supabase.from('localities').select('id, name')
+      supabase.from('localities').select('id, name'),
+      supabase.from('post_likes').select('post_id'),
+      supabase.from('post_comments').select('id, post_id, user_id, body, created_at, parent_id')
     ]);
 
     if (postError) {
@@ -199,17 +204,45 @@ export default function AdminPage() {
     } else {
       const profileMap = new Map((profileRows || []).map(x => [x.id, x.full_name]));
       const localityMap = new Map((localityRows || []).map(x => [x.id, x.name]));
+      const likeCounts = {};
+      const commentCounts = {};
+      (likeRows || []).forEach(x => { likeCounts[x.post_id] = (likeCounts[x.post_id] || 0) + 1; });
+      (commentRows || []).forEach(x => { commentCounts[x.post_id] = (commentCounts[x.post_id] || 0) + 1; });
       setPosts((postRows || []).map(x => ({
         ...x,
         author_name: profileMap.get(x.author_id) || 'Unknown member',
-        locality_name: localityMap.get(x.locality_id) || 'Not set'
+        locality_name: localityMap.get(x.locality_id) || 'Not set',
+        like_count: likeCounts[x.id] || 0,
+        comment_count: commentCounts[x.id] || 0
       })));
     }
 
-    if (profileError || localityError) {
-      setStatsError((profileError || localityError)?.message || 'Could not load post details.');
+    if (profileError || localityError || likeError || commentError) {
+      setStatsError((profileError || localityError || likeError || commentError)?.message || 'Could not load post engagement.');
     }
     setPostsLoading(false);
+  }
+
+  async function openPost(post) {
+    setSelectedPost(post);
+    setSelectedPostComments([]);
+    setSelectedPostLikes(post.like_count || 0);
+    if (!supabase) return;
+    const { data: comments, error } = await supabase
+      .from('post_comments')
+      .select('id, post_id, user_id, body, created_at, parent_id')
+      .eq('post_id', post.id)
+      .order('created_at', { ascending: true });
+    if (error) {
+      setStatsError(error.message || 'Could not load comments.');
+      return;
+    }
+    const userIds = [...new Set((comments || []).map(x => x.user_id).filter(Boolean))];
+    const { data: profiles } = userIds.length
+      ? await supabase.from('profiles').select('id, full_name').in('id', userIds)
+      : { data: [] };
+    const names = new Map((profiles || []).map(x => [x.id, x.full_name]));
+    setSelectedPostComments((comments || []).map(c => ({ ...c, user_name: names.get(c.user_id) || 'Community member' })));
   }
 
   async function deletePost(post) {
@@ -612,7 +645,7 @@ export default function AdminPage() {
                 }).map(p => (
                   <button
                     key={p.id}
-                    onClick={() => setSelectedPost(p)}
+                    onClick={() => openPost(p)}
                     style={styles.postRow}
                   >
                     <span style={styles.postIcon}>📝</span>
@@ -650,6 +683,22 @@ export default function AdminPage() {
                     {selectedPost.author_name} · {selectedPost.locality_name} · {new Date(selectedPost.created_at).toLocaleString()}
                   </p>
                   <div style={styles.postBody}>{selectedPost.body || 'No content'}</div>
+                  <div style={{ display:'flex', gap:18, padding:'12px 0', borderTop:'1px solid #eee4da', borderBottom:'1px solid #eee4da', fontSize:12, fontWeight:800 }}>
+                    <span>♥ {selectedPostLikes} Likes</span>
+                    <span>◌ {selectedPostComments.length} Comments</span>
+                  </div>
+                  <div style={{ marginTop:14 }}>
+                    <b style={{ fontSize:12 }}>Comments & Replies</b>
+                    <div style={{ display:'grid', gap:8, marginTop:9, maxHeight:260, overflowY:'auto' }}>
+                      {selectedPostComments.length ? selectedPostComments.map(c => (
+                        <div key={c.id} style={{ marginLeft:c.parent_id ? 18 : 0, padding:'9px 11px', background:c.parent_id ? '#fff' : '#faf7f2', borderRadius:10, border:'1px solid #eee4da' }}>
+                          <b style={{ fontSize:11 }}>{c.user_name}</b>
+                          <small style={{ display:'block', color:'#9a8e86', marginTop:2 }}>{new Date(c.created_at).toLocaleString()}</small>
+                          <div style={{ fontSize:12, marginTop:5 }}>{c.body}</div>
+                        </div>
+                      )) : <small style={{ color:'#8b7d75' }}>No comments on this post.</small>}
+                    </div>
+                  </div>
                   <button onClick={() => deletePost(selectedPost)} style={styles.deleteButton}>
                     Remove post
                   </button>
