@@ -42,6 +42,7 @@ export default function AdminPage() {
       setSession(s || null);
       setAdmin(s?.user?.app_metadata?.role === 'admin');
       setChecking(false);
+      if (s?.user?.app_metadata?.role === 'admin') loadStats();
     }).catch(() => {
       if (mounted) {
         setChecking(false);
