@@ -616,6 +616,7 @@ export default function Home() {
     const title = fd.get('title')?.toString().trim();
     const body = fd.get('text')?.toString().trim();
     const type = fd.get('type')?.toString() || 'Discussion';
+    const photoFile = fd.get('photo');
 
     if (!title || !body) return setToast('Add a title and message');
 
