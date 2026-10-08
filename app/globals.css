@@ -43,7 +43,7 @@ button:disabled{opacity:.6;cursor:not-allowed}
 .auth-login-logo,.welcome-logo{width:68px;height:68px;border-radius:24px;margin:0 auto 14px;background:linear-gradient(145deg,#e9c77f,#9a6a22);display:grid;place-items:center;color:#fff;font-size:34px;box-shadow:0 12px 28px rgba(156,108,34,.22);position:relative;z-index:1}
 .auth-login-screen h1,.welcome-shell h1{font-family:'Playfair Display',serif;text-align:center;color:var(--ink);font-size:28px;margin:4px 0}
 .auth-login-screen .auth-copy{margin:8px auto 26px;text-align:center}
-.auth-form-modern{display:grid;gap:14px;position:relative;z-index:1}
+.auth-form-modern{display:grid;gap:14px;position:relative;z-index:50;pointer-events:auto}.auth-form-modern button,.auth-form-modern input{position:relative;z-index:51;pointer-events:auto}
 .auth-form-modern label{display:grid;gap:7px;font-size:10px;font-weight:800;color:#65584f}
 .auth-form-modern input{height:50px;border:1px solid #ded1c3;border-radius:13px;background:#fff;padding:0 14px;outline:0;font-size:13px;color:var(--ink);box-shadow:0 4px 14px rgba(55,30,20,.035)}
 .auth-form-modern input:focus{border-color:#b78535;box-shadow:0 0 0 3px rgba(201,148,60,.12)}
