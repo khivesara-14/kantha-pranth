@@ -746,32 +746,104 @@ function AuthScreen({
   }
 
   if (loginOpen) {
-    return <main className="auth-screen auth-login-screen">
-      <div className="auth-mobile-shell">
-        <button className="auth-back" type="button" onClick={() => { setLoginOpen(false); }} aria-label="Back">‹</button>
-        <div className="auth-login-logo">🙏</div>
-        <p className="eyebrow center">KANTHA PRANTH</p>
-        <h1>{authMode === 'signup' ? 'Create your account' : 'Welcome Back'}</h1>
-        <p className="auth-copy">{authMode === 'signup' ? 'Join the Jain community of Bengaluru.' : 'Sign in to continue to your Jain community.'}</p>
+    const submitAuth = (e) => {
+      e?.preventDefault?.();
+      onSubmit(e);
+    };
 
-        <form onSubmit={(e) => { e.preventDefault(); onSubmit(e); }} className="auth-form-modern">
-          <label>Email address
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" placeholder="you@example.com" required />
-          </label>
-          <label>Password
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'} placeholder="Minimum 8 characters" minLength={8} required />
-          </label>
-          {authMode === 'login' && <button type="button" className="forgot-btn" onClick={onResetPassword} disabled={authBusy}>Forgot password?</button>}
-          {authFeedback && <div className="auth-feedback">{authFeedback}</div>}
-          <button type="button" className="primary full auth-main-btn" onPointerDown={() => setAuthFeedback("Sign in button detected")} onClick={(e) => { e.preventDefault(); onSubmit(e); }} disabled={false}>{authBusy ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}</button>
-        </form>
+    return <main
+      className="auth-screen"
+      style={{ minHeight: '100vh', background: '#f8f4ed', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+    >
+      <div
+        style={{ width: '100%', maxWidth: 430, background: '#fffdf9', borderRadius: 24, padding: '34px 24px', boxShadow: '0 20px 60px rgba(55,30,20,.12)', position: 'relative', zIndex: 9999 }}
+      >
+        <button
+          type="button"
+          onClick={() => setLoginOpen(false)}
+          style={{ position: 'absolute', top: 16, left: 16, width: 40, height: 40, borderRadius: 12, border: '1px solid #eadfd3', background: '#fff', fontSize: 24, cursor: 'pointer' }}
+        >‹</button>
 
-        <div className="auth-divider"><span>OR</span></div>
-        <button type="button" className="guest-modern" onClick={onGuest}>Continue as guest</button>
-        <button type="button" className="switch-auth" onClick={() => { setAuthFeedback(''); setAuthMode(authMode === 'signup' ? 'login' : 'signup'); }}>
-          {authMode === 'signup' ? 'Already have an account? ' : 'New to Kantha Pranth? '}<b>{authMode === 'signup' ? 'Sign in' : 'Create account'}</b>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 20, margin: '0 auto 12px', background: 'linear-gradient(145deg,#e9c77f,#9a6a22)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 30 }}>🙏</div>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.14em', color: '#7c1d25' }}>KANTHA PRANTH</div>
+          <h1 style={{ fontFamily: 'Georgia, serif', color: '#241b18', fontSize: 28, margin: '7px 0' }}>
+            {authMode === 'signup' ? 'Create your account' : 'Welcome Back'}
+          </h1>
+          <p style={{ color: '#766b65', fontSize: 12, margin: 0 }}>
+            {authMode === 'signup' ? 'Join the Jain community of Bengaluru.' : 'Sign in to continue to your Jain community.'}
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gap: 14 }}>
+          <label style={{ display: 'grid', gap: 7, fontSize: 11, fontWeight: 700 }}>
+            Email address
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+              placeholder="you@example.com"
+              style={{ width: '100%', height: 50, boxSizing: 'border-box', border: '1px solid #ded1c3', borderRadius: 13, padding: '0 14px', fontSize: 14, background: '#fff' }}
+            />
+          </label>
+
+          <label style={{ display: 'grid', gap: 7, fontSize: 11, fontWeight: 700 }}>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
+              placeholder="Minimum 8 characters"
+              style={{ width: '100%', height: 50, boxSizing: 'border-box', border: '1px solid #ded1c3', borderRadius: 13, padding: '0 14px', fontSize: 14, background: '#fff' }}
+            />
+          </label>
+
+          {authMode === 'login' && (
+            <button type="button" onClick={onResetPassword} disabled={authBusy} style={{ justifySelf: 'end', color: '#7c1d25', fontSize: 11, fontWeight: 800, background: 'none', border: 0, cursor: 'pointer' }}>
+              Forgot password?
+            </button>
+          )}
+
+          {authFeedback && (
+            <div style={{ background: '#fff0ed', border: '1px solid #efc9c2', color: '#8e2926', borderRadius: 12, padding: 10, fontSize: 11 }}>
+              {authFeedback}
+            </div>
+          )}
+
+          <button
+            type="button"
+            disabled={authBusy}
+            onClick={submitAuth}
+            style={{ width: '100%', minHeight: 52, border: 0, borderRadius: 13, background: '#7c1d25', color: '#fff', fontSize: 14, fontWeight: 800, cursor: authBusy ? 'wait' : 'pointer', opacity: authBusy ? .65 : 1 }}
+          >
+            {authBusy ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setAuthFeedback(''); setAuthMode(authMode === 'signup' ? 'login' : 'signup'); }}
+            style={{ border: 0, background: 'none', color: '#7c1d25', fontSize: 11, cursor: 'pointer', padding: 8 }}
+          >
+            {authMode === 'signup' ? 'Already have an account? Sign in' : 'New to Kantha Pranth? Create an account'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 12px', color: '#a3978f', fontSize: 9 }}>
+          <span style={{ flex: 1, height: 1, background: '#eadfd3' }}></span><span>OR</span><span style={{ flex: 1, height: 1, background: '#eadfd3' }}></span>
+        </div>
+
+        <button
+          type="button"
+          onClick={onGuest}
+          style={{ width: '100%', minHeight: 48, border: '1px solid #eadfd3', borderRadius: 13, background: '#fff', color: '#241b18', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}
+        >
+          Continue as guest
         </button>
-        <small className="auth-note">Free email login · No SMS required</small>
+        <small style={{ display: 'block', textAlign: 'center', marginTop: 14, color: '#9a8e86', fontSize: 9 }}>
+          Free email login · No SMS required
+        </small>
       </div>
     </main>;
   }
