@@ -737,12 +737,12 @@ export default function Home() {
           <div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, services, events..." /></div>
           <div className="quick-grid">{quickActions.map(([label, icon]) => <button key={label} className="quick-card" onClick={() => setActive(label === 'Community' ? 'community' : label === 'Family' ? 'family' : label === 'Buy & Sell' ? 'marketplace' : label === 'Services' || label === 'Businesses' ? 'services' : label === 'Events' ? 'events' : 'help')}><span>{icon}</span><b>{label}</b></button>)}</div>
           <SectionHeader title="Latest updates" action="View all" onClick={() => setActive('community')} />
-          {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} />)}
+          {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} />)}
           <SectionHeader title="Coming up" action="All events" onClick={() => setActive('events')} />
           <EventCard event={events[0]} onClick={() => setSelectedEvent(events[0])} />
         </>}
 
-        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => setShowPost(true)}>＋ Post</button>}><div className="filter-row"><Pill tone="active">All</Pill><Pill>Announcements</Pill><Pill>Help</Pill><Pill>Local</Pill></div>{posts.map(post => <PostCard key={post.id} post={post} onToast={setToast} />)}</Page>}
+        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => setShowPost(true)}>＋ Post</button>}><div className="filter-row"><Pill tone="active">All</Pill><Pill>Announcements</Pill><Pill>Help</Pill><Pill>Local</Pill></div>{posts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} />)}</Page>}
 
         {active === 'family' && <Page title="Family Directory" subtitle="Connect with Jain families in your community" action={authenticated && !guestMode && supabase ? <button className="primary small" onClick={() => setShowFamilyForm(true)}>＋ Add family</button> : null}>
           <div className="directory-banner"><div className="directory-icon">👨‍👩‍👧‍👦</div><div><b>A community family directory</b><p>Choose what your family shares. Phone numbers and private details are never displayed by default.</p></div></div>
@@ -1023,7 +1023,97 @@ function ProfileSetupScreen({ userName, setUserName, profileLocality, setProfile
 
 function Page({ title, subtitle, action, children }) { return <div className="page"><div className="page-head"><div><p className="eyebrow">KANTHA PRANTH</p><h1>{title}</h1><p>{subtitle}</p></div>{action}</div>{children}</div>; }
 function SectionHeader({ title, action, onClick }) { return <div className="section-head"><h2>{title}</h2>{action && <button onClick={onClick}>{action} ›</button>}</div>; }
-function PostCard({ post, onToast }) { return <article className="post-card"><div className="post-top"><Avatar initials={post.avatar} /><div className="post-author"><b>{post.author}</b><span>{post.time} · {post.area}</span></div><button className="more">•••</button></div><Pill tone={post.type === 'Help' ? 'help' : ''}>{post.type}</Pill><h3>{post.title}</h3><p>{post.text}</p>{post.image_url && <img src={post.image_url} alt="" style={{ width:'100%', maxHeight:360, objectFit:'cover', borderRadius:14, marginTop:10 }} />}<div className="post-actions"><button onClick={() => onToast('Post liked')}>♡ {post.likes}</button><button onClick={() => onToast('Comments are coming next')}>◌ {post.comments}</button><button onClick={() => onToast('Share link copied')}>↗ Share</button></div></article>; }
+function PostCard({ post, onToast, currentUserId, authenticated, guestMode }) {
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(post.likes || 0);
+  const [commentCount, setCommentCount] = useState(post.comments || 0);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [showComments, setShowComments] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadInteractions() {
+      if (!supabase || !post.id || typeof post.id !== 'string') return;
+      const [{ count: likes }, { count: commentsTotal }] = await Promise.all([
+        supabase.from('post_likes').select('id', { count: 'exact', head: true }).eq('post_id', post.id),
+        supabase.from('post_comments').select('id', { count: 'exact', head: true }).eq('post_id', post.id)
+      ]);
+      if (!active) return;
+      setLikeCount(likes || 0);
+      setCommentCount(commentsTotal || 0);
+      if (currentUserId) {
+        const { data } = await supabase.from('post_likes').select('id').eq('post_id', post.id).eq('user_id', currentUserId).maybeSingle();
+        if (active) setLiked(!!data);
+      }
+    }
+    loadInteractions();
+    return () => { active = false; };
+  }, [post.id, currentUserId]);
+
+  async function toggleLike() {
+    if (!supabase || !authenticated || guestMode || !currentUserId) return onToast('Please sign in to like posts');
+    setBusy(true);
+    if (liked) {
+      const { error } = await supabase.from('post_likes').delete().eq('post_id', post.id).eq('user_id', currentUserId);
+      if (!error) { setLiked(false); setLikeCount(x => Math.max(0, x - 1)); }
+      else onToast(error.message);
+    } else {
+      const { error } = await supabase.from('post_likes').insert({ post_id: post.id, user_id: currentUserId });
+      if (!error) { setLiked(true); setLikeCount(x => x + 1); }
+      else onToast(error.message);
+    }
+    setBusy(false);
+  }
+
+  async function openComments() {
+    setShowComments(true);
+    if (!supabase || typeof post.id !== 'string') return;
+    const { data, error } = await supabase.from('post_comments').select('id, body, created_at, user_id, profiles(full_name)').eq('post_id', post.id).order('created_at', { ascending: true });
+    if (error) return onToast(error.message);
+    setComments(data || []);
+  }
+
+  async function addComment(e) {
+    e.preventDefault();
+    const body = commentText.trim();
+    if (!body) return;
+    if (!supabase || !authenticated || guestMode || !currentUserId) return onToast('Please sign in to comment');
+    const { error } = await supabase.from('post_comments').insert({ post_id: post.id, user_id: currentUserId, body });
+    if (error) return onToast(error.message);
+    setCommentText('');
+    setCommentCount(x => x + 1);
+    await openComments();
+  }
+
+  async function sharePost() {
+    const url = window.location.origin + window.location.pathname + '?post=' + encodeURIComponent(post.id);
+    try {
+      if (navigator.share) await navigator.share({ title: post.title, text: post.text, url });
+      else { await navigator.clipboard.writeText(url); onToast('Post link copied'); }
+    } catch (error) {
+      if (error?.name !== 'AbortError') onToast('Could not share post');
+    }
+  }
+
+  return <article className="post-card">
+    <div className="post-top"><Avatar initials={post.avatar} /><div className="post-author"><b>{post.author}</b><span>{post.time} · {post.area}</span></div><button className="more" onClick={() => onToast('More post actions coming soon')}>•••</button></div>
+    <Pill tone={post.type === 'Help' ? 'help' : ''}>{post.type}</Pill><h3>{post.title}</h3><p>{post.text}</p>
+    {post.image_url && <img src={post.image_url} alt="" style={{ width:'100%', maxHeight:360, objectFit:'cover', borderRadius:14, marginTop:10 }} />}
+    <div className="post-actions">
+      <button disabled={busy} onClick={toggleLike}>{liked ? '♥' : '♡'} {likeCount}</button>
+      <button onClick={openComments}>◌ {commentCount}</button>
+      <button onClick={sharePost}>↗ Share</button>
+    </div>
+    {showComments && <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid #eee3d8' }}>
+      <div style={{ display:'grid', gap:9, maxHeight:240, overflowY:'auto' }}>
+        {comments.length ? comments.map(c => <div key={c.id} style={{ background:'#faf7f2', borderRadius:12, padding:'9px 11px' }}><b style={{ fontSize:11 }}>{c.profiles?.full_name || 'Community Member'}</b><div style={{ fontSize:12, marginTop:3 }}>{c.body}</div></div>) : <small style={{ color:'#8c8179' }}>No comments yet. Be the first.</small>}
+      </div>
+      {authenticated && !guestMode && <form onSubmit={addComment} style={{ display:'flex', gap:7, marginTop:10 }}><input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Write a comment…" style={{ flex:1, minWidth:0 }} /><button className="primary small" disabled={!commentText.trim()}>Post</button></form>}
+    </div>}
+  </article>;
+}
 function EventCard({ event, onClick }) { return <button className="event-card" onClick={onClick}><div className="event-date"><b>{event.date.split(' ')[0]}</b><span>{event.date.split(' ')[1]}</span></div><div className="event-icon">{event.emoji}</div><div className="event-info"><Pill>{event.tag}</Pill><h3>{event.title}</h3><p>◷ {event.time} · ⌖ {event.area}</p></div><span className="chevron">›</span></button>; }
 function ServiceCard({ service, onToast }) { return <article className="service-card"><div className="service-icon">{service.icon}</div><div className="service-info"><div className="service-title"><h3>{service.name}</h3>{service.verified && <span className="verified">✓ Verified</span>}</div><p>{service.category}</p><small>⌖ {service.area} · ★ {service.rating}</small></div><button className="call" onClick={() => onToast('Contact flow coming next')}>Call</button></article>; }
 function Modal({ title, close, children }) { return <div className="modal-backdrop" onMouseDown={e => e.target === e.currentTarget && close()}><div className="modal"><div className="modal-head"><h2>{title}</h2><button onClick={close}>×</button></div>{children}</div></div>; }
