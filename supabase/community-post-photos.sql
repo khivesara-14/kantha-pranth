@@ -110,6 +110,7 @@ create table if not exists public.post_comments (
 
 alter table public.post_comments enable row level security;
 
+drop policy if exists "users create post comments" on public.post_comments;
 drop policy if exists "post comments are readable" on public.post_comments;
 create policy "post comments are readable" on public.post_comments
 for select to authenticated
