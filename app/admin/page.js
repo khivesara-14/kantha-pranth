@@ -160,7 +160,7 @@ export default function AdminPage() {
       { data: profileRows, error: profileError },
       { data: localityRows, error: localityError }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone, locality_id, avatar_url, bio, is_verified, created_at').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, full_name, phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name, locality_id, avatar_url, bio, is_verified, created_at').order('created_at', { ascending: false }),
       supabase.from('localities').select('id, name').order('name')
     ]);
 
@@ -512,6 +512,34 @@ export default function AdminPage() {
                   <p style={styles.detailMuted}>{selectedMember.locality_name}</p>
 
                   <div style={styles.detailGrid}>
+                    <div style={styles.detailCard}>
+                      <small style={styles.detailLabel}>Mobile number</small>
+                      <b style={styles.detailValue}>{selectedMember.mobile_number || selectedMember.phone || 'Not provided'}</b>
+                    </div>
+                    <div style={styles.detailCard}>
+                      <small style={styles.detailLabel}>Date of birth</small>
+                      <b style={styles.detailValue}>{selectedMember.date_of_birth ? new Date(selectedMember.date_of_birth).toLocaleDateString() : 'Not provided'}</b>
+                    </div>
+                    <div style={styles.detailCard}>
+                      <small style={styles.detailLabel}>Marital status</small>
+                      <b style={styles.detailValue}>{selectedMember.marital_status || 'Not provided'}</b>
+                    </div>
+                    <div style={styles.detailCard}>
+                      <small style={styles.detailLabel}>Blood group</small>
+                      <b style={styles.detailValue}>{selectedMember.blood_group || 'Not provided'}</b>
+                    </div>
+                    <div style={styles.detailCard}>
+                      <small style={styles.detailLabel}>Occupation</small>
+                      <b style={styles.detailValue}>{selectedMember.occupation || 'Not provided'}</b>
+                    </div>
+                    <div style={styles.detailCard}>
+                      <small style={styles.detailLabel}>Highest education</small>
+                      <b style={styles.detailValue}>{selectedMember.highest_education || 'Not provided'}</b>
+                    </div>
+                    <div style={styles.detailCard}>
+                      <small style={styles.detailLabel}>Parents' name</small>
+                      <b style={styles.detailValue}>{selectedMember.parents_name || 'Not provided'}</b>
+                    </div>
                     <div style={styles.detailCard}>
                       <small style={styles.detailLabel}>Phone</small>
                       <b style={styles.detailValue}>{selectedMember.phone || 'Not provided'}</b>
