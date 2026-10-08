@@ -1367,6 +1367,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
       <button onClick={openComments}>◌ {commentCount}</button>
       <button onClick={sharePost}>↗ Share</button>
       <button onClick={toggleSaved}>{saved ? '🔖' : '＋'} {saved ? 'Saved' : 'Save'}</button>
+      {!isOwnPost && <button onClick={reportPost} style={{ color:'#9b2c2c' }}>🚩 Report</button>}
     </div>
     {showComments && <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid #eee3d8' }}>
       <div style={{ display:'grid', gap:9, maxHeight:240, overflowY:'auto' }}>
