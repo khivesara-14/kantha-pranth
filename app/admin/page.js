@@ -245,6 +245,19 @@ export default function AdminPage() {
     setSelectedPostComments((comments || []).map(c => ({ ...c, user_name: names.get(c.user_id) || 'Community member' })));
   }
 
+  async function deleteComment(comment) {
+    if (!supabase) return;
+    const confirmed = window.confirm('Delete this comment? This will also remove any replies to it.');
+    if (!confirmed) return;
+    const { error } = await supabase.from('post_comments').delete().eq('id', comment.id);
+    if (error) {
+      setStatsError(error.message || 'Could not delete comment.');
+      return;
+    }
+    await openPost(selectedPost);
+    await loadPosts();
+  }
+
   async function deletePost(post) {
     if (!supabase) return;
     const confirmed = window.confirm('Remove this post from the community? This cannot be undone.');
@@ -695,6 +708,7 @@ export default function AdminPage() {
                           <b style={{ fontSize:11 }}>{c.user_name}</b>
                           <small style={{ display:'block', color:'#9a8e86', marginTop:2 }}>{new Date(c.created_at).toLocaleString()}</small>
                           <div style={{ fontSize:12, marginTop:5 }}>{c.body}</div>
+                          <button type="button" onClick={() => deleteComment(c)} style={{ marginTop:7, border:0, background:'transparent', color:'#9b2c2c', fontSize:10, fontWeight:800, cursor:'pointer' }}>🗑 Delete comment</button>
                         </div>
                       )) : <small style={{ color:'#8b7d75' }}>No comments on this post.</small>}
                     </div>
