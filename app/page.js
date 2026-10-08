@@ -77,6 +77,7 @@ export default function Home() {
   const [needsProfile, setNeedsProfile] = useState(false);
   const [profileBusy, setProfileBusy] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
+  const [isVerifiedUser, setIsVerifiedUser] = useState(false);
   const [currentUserId, setCurrentUserId] = useState('');
   const [guestMode, setGuestMode] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
@@ -223,13 +224,14 @@ export default function Home() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, locality_id')
+      .select('full_name, locality_id, is_verified')
       .eq('id', user.id)
       .maybeSingle();
 
     if (profile?.full_name) {
       setUserName(profile.full_name);
     }
+    setIsVerifiedUser(!!profile?.is_verified);
 
     if (profile?.locality_id) {
       const { data: loc } = await supabase
@@ -660,6 +662,7 @@ export default function Home() {
     if (supabase) await supabase.auth.signOut();
     setAuthenticated(false);
     setCurrentUserId('');
+    setIsVerifiedUser(false);
     setGuestMode(false);
     setUserName('');
     localStorage.removeItem('kp-demo');
@@ -673,6 +676,7 @@ export default function Home() {
     if (!supabase || !authenticated || guestMode || !currentUserId) {
       return setToast('Please sign in to publish a community post');
     }
+    if (!isVerifiedUser) return setToast('Only verified community members can publish posts');
 
     const fd = new FormData(e.currentTarget);
     const title = fd.get('title')?.toString().trim();
@@ -799,12 +803,12 @@ export default function Home() {
           <div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, services, events..." /></div>
           <div className="quick-grid">{quickActions.map(([label, icon]) => <button key={label} className="quick-card" onClick={() => setActive(label === 'Community' ? 'community' : label === 'Family' ? 'family' : label === 'Buy & Sell' ? 'marketplace' : label === 'Services' || label === 'Businesses' ? 'services' : label === 'Events' ? 'events' : 'help')}><span>{icon}</span><b>{label}</b></button>)}</div>
           <SectionHeader title="Latest updates" action="View all" onClick={() => setActive('community')} />
-          {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} />)}
+          {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} />)}
           <SectionHeader title="Coming up" action="All events" onClick={() => setActive('events')} />
           <EventCard event={events[0]} onClick={() => setSelectedEvent(events[0])} />
         </>}
 
-        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => setShowPost(true)}>＋ Post</button>}><div className="search" style={{ marginTop:12 }}><span>⌕</span><input value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="Search community posts..." /></div><div className="filter-row" style={{ marginTop:10 }}>{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
+        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋ Post</button>}><div className="search" style={{ marginTop:12 }}><span>⌕</span><input value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="Search community posts..." /></div><div className="filter-row" style={{ marginTop:10 }}>{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
 
         {active === 'family' && <Page title="Family Directory" subtitle="Connect with Jain families in your community" action={authenticated && !guestMode && supabase ? <button className="primary small" onClick={() => setShowFamilyForm(true)}>＋ Add family</button> : null}>
           <div className="directory-banner"><div className="directory-icon">👨‍👩‍👧‍👦</div><div><b>A community family directory</b><p>Choose what your family shares. Phone numbers and private details are never displayed by default.</p></div></div>
@@ -829,10 +833,10 @@ export default function Home() {
         {active === 'help' && <Page title="Community Help" subtitle="Support one another"><div className="help-grid">{[['🩸','Blood requirement'],['🔎','Lost & found'],['🤝','Volunteer'],['❤️','Support request']].map(([i,x]) => <button key={x} className="help-card" onClick={() => setToast('Help request flow coming next') }><span>{i}</span><b>{x}</b><small>Post to your local community</small></button>)}</div><div className="info-banner"><b>Safety first</b><p>Important help requests will be moderated. Never share sensitive personal or financial information publicly.</p></div></Page>}
       </section>
 
-      <button className="fab" onClick={() => setShowPost(true)}>＋</button>
+      <button className="fab" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋</button>
       <nav className="bottom-nav">{nav.map(([id, icon, label]) => <button key={id} className={active === id ? 'selected' : ''} onClick={() => setActive(id)}><span>{icon}</span><small>{label}</small></button>)}</nav>
 
-      {showPost && <Modal title="Create a community post" close={() => { setShowPost(false); setPostPhotoPreview(''); }}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><label>Photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0]; setPostPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{postPhotoPreview && <img className="family-photo-preview" src={postPhotoPreview} alt="Post preview" />}<button className="primary full" disabled={postBusy}>{postBusy ? 'Publishing…' : 'Publish post'}</button></form></Modal>}
+      {showPost && <Modal title="Create a community post" close={() => { setShowPost(false); setPostPhotoPreview(''); }}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><label>Photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0]; setPostPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{postPhotoPreview && <img className="family-photo-preview" src={postPhotoPreview} alt="Post preview" />}<button className="primary full" disabled={postBusy || !isVerifiedUser}>{postBusy ? 'Publishing…' : !isVerifiedUser ? 'Verification required' : 'Publish post'}</button></form></Modal>}
       {showListing && <Modal title="Sell something" close={() => setShowListing(false)}><form onSubmit={addListing} className="form"><label>Product name<input name="title" placeholder="e.g. Study table" /></label><label>Price<input name="price" inputMode="numeric" placeholder="2500" /></label><label>Category<select name="category"><option>Furniture</option><option>Electronics</option><option>Books</option><option>Vehicles</option><option>Property</option><option>Other</option></select></label><button className="primary full">Publish listing</button></form></Modal>}
       {showFamilyForm && <Modal title="Add your family" close={() => { setShowFamilyForm(false); setFamilyPhotoPreview(''); }}><form onSubmit={createFamily} className="form"><div className="info-banner"><b>Privacy first</b><p>All contact details are optional. They are shown only when you choose “Show contact details”.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" onChange={e => { const file=e.target.files?.[0]; setFamilyPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{familyPhotoPreview && <img className="family-photo-preview" src={familyPhotoPreview} alt="Family preview" />}<label>Family name <span className="optional">(optional)</span><input name="family_name" placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue="community"><option value="community">Community members</option><option value="private">Private — only me</option></select></label><label>Family members<small className="field-help">One member per line. Example: Rajesh Jain — Father</small><textarea name="members" rows="5" placeholder="Rajesh Jain — Father&#10;Sunita Jain — Mother&#10;Aarav Jain — Son"></textarea></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Add family to directory'}</button></form></Modal>}
       {showFamilyEdit && editingFamily && <Modal title="Edit family details" close={() => { setShowFamilyEdit(false); setEditingFamily(null); }}><form onSubmit={updateFamily} className="form"><div className="info-banner"><b>Update anytime</b><p>You can remove the family name, replace the photo, or change which contact details the community can see.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" /></label>{editingFamily.photo_url && <img className="family-photo-preview" src={editingFamily.photo_url} alt="Current family" />}<label className="check-row"><input name="remove_photo" type="checkbox" /> Remove current family photo</label><label>Family name <span className="optional">(optional)</span><input name="family_name" defaultValue={editingFamily.family_name || ''} placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" defaultChecked={!editingFamily.family_name} /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={editingFamily.localities?.name || locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" defaultValue={editingFamily.address || ''} placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" defaultValue={editingFamily.phone || ''} placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" defaultValue={editingFamily.email || ''} placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" defaultChecked={!!editingFamily.show_contact} /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue={editingFamily.visibility || 'community'}><option value="community">Community members</option><option value="private">Private — only me</option></select></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Save family details'}</button></form></Modal>}
@@ -1089,7 +1093,7 @@ function ProfileSetupScreen({ userName, setUserName, profileLocality, setProfile
 
 function Page({ title, subtitle, action, children }) { return <div className="page"><div className="page-head"><div><p className="eyebrow">KANTHA PRANTH</p><h1>{title}</h1><p>{subtitle}</p></div>{action}</div>{children}</div>; }
 function SectionHeader({ title, action, onClick }) { return <div className="section-head"><h2>{title}</h2>{action && <button onClick={onClick}>{action} ›</button>}</div>; }
-function PostCard({ post, onToast, currentUserId, authenticated, guestMode, onPostChanged, onProfile }) {
+function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVerifiedUser, onPostChanged, onProfile }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [commentCount, setCommentCount] = useState(post.comments || 0);
@@ -1163,6 +1167,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, onPo
     const body = commentText.trim();
     if (!body) return;
     if (!supabase || !authenticated || guestMode || !currentUserId) return onToast('Please sign in to comment');
+    if (!isVerifiedUser) return onToast('Only verified community members can comment');
     const { error } = await supabase.from('post_comments').insert({ post_id: post.id, user_id: currentUserId, body, parent_id: replyTo || null });
     if (error) return onToast(error.message);
     setCommentText('');
