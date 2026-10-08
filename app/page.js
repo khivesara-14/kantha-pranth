@@ -225,13 +225,42 @@ export default function Home() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, locality_id, is_verified')
+      .select('full_name, phone, date_of_birth, marital_status, blood_group, mobile_number, occupation, highest_education, parents_name, locality_id, is_verified')
       .eq('id', user.id)
       .maybeSingle();
 
     if (profile?.full_name) {
       setUserName(profile.full_name);
     }
+
+    // First login after registration: create the community profile from the
+    // registration details stored in Supabase Auth metadata.
+    if (!profile) {
+      const meta = user.user_metadata || {};
+      const { data: createdProfile } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          full_name: meta.full_name || '',
+          phone: meta.mobile_number || meta.phone || null,
+          date_of_birth: meta.date_of_birth || null,
+          marital_status: meta.marital_status || null,
+          blood_group: meta.blood_group || null,
+          mobile_number: meta.mobile_number || null,
+          occupation: meta.occupation || null,
+          highest_education: meta.highest_education || null,
+          parents_name: meta.parents_name || null
+        })
+        .select('full_name, locality_id, is_verified')
+        .maybeSingle();
+
+      if (createdProfile?.full_name) setUserName(createdProfile.full_name);
+      setIsVerified(!!createdProfile?.is_verified);
+      setIsVerifiedUser(!!createdProfile?.is_verified);
+      setNeedsProfile(false);
+      return;
+    }
+
     setIsVerified(!!profile?.is_verified);
     setIsVerifiedUser(!!profile?.is_verified);
 
