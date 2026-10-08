@@ -47,6 +47,20 @@ using (
 );
 
 
+-- Only verified community members can publish posts.
+drop policy if exists "users create posts" on public.posts;
+create policy "verified users create posts"
+on public.posts
+for insert to authenticated
+with check (
+  (select auth.uid()) = author_id
+  and exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid())
+      and p.is_verified = true
+  )
+);
+
 -- Post likes
 create table if not exists public.post_likes (
   id uuid primary key default gen_random_uuid(),
