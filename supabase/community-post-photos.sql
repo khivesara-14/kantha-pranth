@@ -2,6 +2,8 @@
 -- Run this once in Supabase Dashboard → SQL Editor.
 
 alter table public.posts add column if not exists image_url text;
+alter table public.posts add column if not exists is_pinned boolean not null default false;
+create index if not exists posts_pinned_created_at_idx on public.posts(is_pinned desc, created_at desc);
 
 insert into storage.buckets (id, name, public)
 values ('community-posts', 'community-posts', true)
@@ -171,13 +173,34 @@ for each row execute function public.notify_post_like();
 create or replace function public.notify_post_comment()
 returns trigger language plpgsql security definer set search_path = public
 as $$
-declare post_author uuid;
+declare
+  post_author uuid;
+  parent_author uuid;
 begin
   select author_id into post_author from public.posts where id = new.post_id;
+
   if post_author is not null and post_author <> new.user_id then
     insert into public.notifications(user_id,type,post_id,actor_id,message)
-    values(post_author,'comment',new.post_id,new.user_id,'Someone commented on your community post.');
+    values(
+      post_author,
+      case when new.parent_id is null then 'comment' else 'reply' end,
+      new.post_id,
+      new.user_id,
+      case when new.parent_id is null
+        then 'Someone commented on your community post.'
+        else 'Someone replied to your community comment.'
+      end
+    );
   end if;
+
+  if new.parent_id is not null then
+    select user_id into parent_author from public.post_comments where id = new.parent_id;
+    if parent_author is not null and parent_author <> new.user_id and parent_author <> post_author then
+      insert into public.notifications(user_id,type,post_id,actor_id,message)
+      values(parent_author,'reply',new.post_id,new.user_id,'Someone replied to your comment.');
+    end if;
+  end if;
+
   return new;
 end $$;
 
