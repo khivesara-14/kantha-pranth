@@ -754,7 +754,7 @@ function AuthScreen({
         <h1>{authMode === 'signup' ? 'Create your account' : 'Welcome Back'}</h1>
         <p className="auth-copy">{authMode === 'signup' ? 'Join the Jain community of Bengaluru.' : 'Sign in to continue to your Jain community.'}</p>
 
-        <form onSubmit={onSubmit} className="auth-form-modern">
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit(e); }} className="auth-form-modern">
           <label>Email address
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" placeholder="you@example.com" required />
           </label>
@@ -763,7 +763,7 @@ function AuthScreen({
           </label>
           {authMode === 'login' && <button type="button" className="forgot-btn" onClick={onResetPassword} disabled={authBusy}>Forgot password?</button>}
           {authFeedback && <div className="auth-feedback">{authFeedback}</div>}
-          <button className="primary full auth-main-btn" disabled={authBusy}>{authBusy ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}</button>
+          <button type="submit" className="primary full auth-main-btn" onClick={(e) => { e.stopPropagation(); }} disabled={authBusy}>{authBusy ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}</button>
         </form>
 
         <div className="auth-divider"><span>OR</span></div>
