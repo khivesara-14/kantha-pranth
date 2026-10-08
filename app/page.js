@@ -50,6 +50,9 @@ export default function Home() {
   const [familyPhotoPreview, setFamilyPhotoPreview] = useState('');
   const [locality, setLocality] = useState('Nagarbhavi');
   const [posts, setPosts] = useState(initialPosts);
+  const [communityFilter, setCommunityFilter] = useState('All');
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const [listings, setListings] = useState(initialListings);
   const [showPost, setShowPost] = useState(false);
   const [postBusy, setPostBusy] = useState(false);
@@ -95,6 +98,7 @@ export default function Home() {
           await loadUserProfile(data.session);
           await loadPosts();
           await loadFamilies();
+          await loadNotifications();
         } else {
           setAuthenticated(false);
           setGuestMode(false);
@@ -131,11 +135,30 @@ export default function Home() {
     }));
   }, [locality, posts, listings, userName, profileLocality, authenticated]);
 
+  async function loadNotifications() {
+    if (!supabase || !currentUserId) return;
+    const { data } = await supabase.from('notifications').select('id, type, post_id, message, read_at, created_at').eq('user_id', currentUserId).order('created_at', { ascending: false }).limit(20);
+    setNotifications(data || []);
+  }
+
+  async function markNotificationsRead() {
+    if (!supabase || !currentUserId) return;
+    await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', currentUserId).is('read_at', null);
+    setNotifications(rows => rows.map(x => ({ ...x, read_at: x.read_at || new Date().toISOString() })));
+  }
+
+  const unreadNotifications = notifications.filter(x => !x.read_at).length;
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(''), 2400);
     return () => clearTimeout(t);
   }, [toast]);
+
+  const filteredCommunityPosts = useMemo(() => {
+    if (communityFilter === 'All') return posts;
+    return posts.filter(p => p.type === communityFilter);
+  }, [posts, communityFilter]);
 
   const filteredListings = useMemo(() => listings.filter(x => `${x.title} ${x.category} ${x.area}`.toLowerCase().includes(search.toLowerCase())), [listings, search]);
   const filteredServices = useMemo(() => services.filter(x => `${x.name} ${x.category} ${x.area}`.toLowerCase().includes(search.toLowerCase())), [search]);
@@ -214,6 +237,7 @@ export default function Home() {
       const profile = profileMap.get(post.author_id);
       return {
         id: post.id,
+        author_id: post.author_id,
         type: post.type || 'Discussion',
         author: profile?.full_name || 'Community Member',
         time: formatPostTime(post.created_at),
@@ -723,7 +747,7 @@ export default function Home() {
           <div className="brand-mark">☀</div>
           <div><div className="brand">KANTHA PRANTH</div><div className="brand-sub">Jain Community · Bengaluru</div></div>
         </div>
-        <div className="top-actions"><button className="icon-btn" onClick={() => setToast('Notifications are coming in the next build')}>♧</button><button className="avatar mini" onClick={() => setActive('profile')}>{initialsFromName(userName || 'Guest')}</button></div>
+        <div className="top-actions" style={{ position:'relative' }}><button className="icon-btn" onClick={() => { setNotificationOpen(x => !x); loadNotifications(); if (!notificationOpen) markNotificationsRead(); }}>♧{unreadNotifications > 0 && <span style={{ position:'absolute', top:0, right:32, minWidth:16, height:16, borderRadius:99, background:'#7c1d25', color:'#fff', fontSize:9, display:'grid', placeItems:'center', padding:'0 3px' }}>{unreadNotifications}</span>}</button><button className="avatar mini" onClick={() => setActive('profile')}>{initialsFromName(userName || 'Guest')}</button>{notificationOpen && <div style={{ position:'absolute', right:0, top:48, width:300, maxWidth:'calc(100vw - 32px)', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:16, padding:12, boxShadow:'0 16px 40px rgba(55,30,20,.15)', zIndex:50 }}><div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}><b>Notifications</b><button className="text-btn" onClick={markNotificationsRead}>Mark all read</button></div>{notifications.length ? notifications.map(n => <div key={n.id} style={{ padding:'10px 4px', borderTop:'1px solid #f0e7df', fontSize:12 }}>{n.message}<small style={{ display:'block', color:'#9a8e86', marginTop:3 }}>{formatPostTime(n.created_at)}</small></div>) : <small style={{ color:'#8c8179' }}>No notifications yet.</small>}</div>}</div>
       </header>
 
       <section className="content">
@@ -742,7 +766,7 @@ export default function Home() {
           <EventCard event={events[0]} onClick={() => setSelectedEvent(events[0])} />
         </>}
 
-        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => setShowPost(true)}>＋ Post</button>}><div className="filter-row"><Pill tone="active">All</Pill><Pill>Announcements</Pill><Pill>Help</Pill><Pill>Local</Pill></div>{posts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} />)}</Page>}
+        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => setShowPost(true)}>＋ Post</button>}><div className="filter-row">{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
 
         {active === 'family' && <Page title="Family Directory" subtitle="Connect with Jain families in your community" action={authenticated && !guestMode && supabase ? <button className="primary small" onClick={() => setShowFamilyForm(true)}>＋ Add family</button> : null}>
           <div className="directory-banner"><div className="directory-icon">👨‍👩‍👧‍👦</div><div><b>A community family directory</b><p>Choose what your family shares. Phone numbers and private details are never displayed by default.</p></div></div>
