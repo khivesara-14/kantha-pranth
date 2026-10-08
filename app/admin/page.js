@@ -26,6 +26,11 @@ export default function AdminPage() {
   const [memberLocality, setMemberLocality] = useState('All');
   const [localities, setLocalities] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [postSearch, setPostSearch] = useState('');
+  const [postType, setPostType] = useState('All');
+  const [selectedPost, setSelectedPost] = useState(null);
 
   useEffect(() => {
     if (!supabase) {
@@ -43,6 +48,7 @@ export default function AdminPage() {
       if (s?.user?.app_metadata?.role === 'admin') {
         loadStats();
         loadMembers();
+        loadPosts();
       }
     }).catch(() => {
       if (mounted) {
@@ -95,6 +101,7 @@ export default function AdminPage() {
     setAdmin(true);
     loadStats();
     loadMembers();
+    loadPosts();
   }
 
   async function loadStats() {
@@ -151,6 +158,55 @@ export default function AdminPage() {
 
     if (!localityError) setLocalities(localityRows || []);
     setMembersLoading(false);
+  }
+
+  async function loadPosts() {
+    if (!supabase) return;
+    setPostsLoading(true);
+
+    const [
+      { data: postRows, error: postError },
+      { data: profileRows, error: profileError },
+      { data: localityRows, error: localityError }
+    ] = await Promise.all([
+      supabase.from('posts').select('id, author_id, locality_id, type, title, body, created_at').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, full_name'),
+      supabase.from('localities').select('id, name')
+    ]);
+
+    if (postError) {
+      setStatsError(postError.message || 'Could not load posts.');
+      setPosts([]);
+    } else {
+      const profileMap = new Map((profileRows || []).map(x => [x.id, x.full_name]));
+      const localityMap = new Map((localityRows || []).map(x => [x.id, x.name]));
+      setPosts((postRows || []).map(x => ({
+        ...x,
+        author_name: profileMap.get(x.author_id) || 'Unknown member',
+        locality_name: localityMap.get(x.locality_id) || 'Not set'
+      })));
+    }
+
+    if (profileError || localityError) {
+      setStatsError((profileError || localityError)?.message || 'Could not load post details.');
+    }
+    setPostsLoading(false);
+  }
+
+  async function deletePost(post) {
+    if (!supabase) return;
+    const confirmed = window.confirm('Remove this post from the community? This cannot be undone.');
+    if (!confirmed) return;
+
+    const { error: deleteError } = await supabase.from('posts').delete().eq('id', post.id);
+    if (deleteError) {
+      setStatsError(deleteError.message || 'Could not remove post.');
+      return;
+    }
+
+    setPosts(prev => prev.filter(x => x.id !== post.id));
+    setSelectedPost(null);
+    setStats(prev => ({ ...prev, posts: Math.max(0, prev.posts - 1) }));
   }
 
   async function toggleVerification(member) {
@@ -467,7 +523,96 @@ export default function AdminPage() {
           </div>
         )}
 
-        {!['Dashboard', 'Members'].includes(active) && (
+
+        {active === 'Posts' && (
+          <div>
+            <div style={styles.memberToolbar}>
+              <input
+                value={postSearch}
+                onChange={e => setPostSearch(e.target.value)}
+                placeholder="Search post title or content…"
+                style={styles.searchInput}
+              />
+              <select
+                value={postType}
+                onChange={e => setPostType(e.target.value)}
+                style={styles.select}
+              >
+                <option>All</option>
+                <option>Discussion</option>
+                <option>Help</option>
+                <option>Announcement</option>
+                <option>Event</option>
+                <option>Buy & Sell</option>
+              </select>
+              <button onClick={loadPosts} style={styles.refresh}>↻ Refresh</button>
+            </div>
+
+            {statsError && <div style={styles.errorBanner}>{statsError}</div>}
+
+            <div style={styles.postList}>
+              {postsLoading ? (
+                <div style={styles.empty}>Loading posts…</div>
+              ) : (
+                posts.filter(p => {
+                  const q = postSearch.trim().toLowerCase();
+                  const matchesSearch = !q ||
+                    (p.title || '').toLowerCase().includes(q) ||
+                    (p.body || '').toLowerCase().includes(q) ||
+                    (p.author_name || '').toLowerCase().includes(q);
+                  const matchesType = postType === 'All' || p.type === postType;
+                  return matchesSearch && matchesType;
+                }).map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPost(p)}
+                    style={styles.postRow}
+                  >
+                    <span style={styles.postIcon}>📝</span>
+                    <span style={styles.postInfo}>
+                      <b style={styles.postTitle}>{p.title || 'Untitled post'}</b>
+                      <small style={styles.postMeta}>
+                        {p.author_name} · {p.locality_name} · {p.type || 'Discussion'}
+                      </small>
+                      <small style={styles.postPreview}>{p.body || 'No content'}</small>
+                    </span>
+                    <span style={styles.postDate}>
+                      {new Date(p.created_at).toLocaleDateString()}
+                    </span>
+                    <span style={styles.chevron}>›</span>
+                  </button>
+                ))
+              )}
+
+              {!postsLoading && posts.filter(p => {
+                const q = postSearch.trim().toLowerCase();
+                return (!q || (p.title || '').toLowerCase().includes(q) || (p.body || '').toLowerCase().includes(q) || (p.author_name || '').toLowerCase().includes(q)) &&
+                  (postType === 'All' || p.type === postType);
+              }).length === 0 && (
+                <div style={styles.empty}>No posts found.</div>
+              )}
+            </div>
+
+            {selectedPost && (
+              <div style={styles.modalBackdrop} onClick={() => setSelectedPost(null)}>
+                <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                  <button style={styles.modalClose} onClick={() => setSelectedPost(null)}>×</button>
+                  <div style={styles.postDetailType}>{selectedPost.type || 'Discussion'}</div>
+                  <h2 style={styles.detailTitle}>{selectedPost.title || 'Untitled post'}</h2>
+                  <p style={styles.detailMuted}>
+                    {selectedPost.author_name} · {selectedPost.locality_name} · {new Date(selectedPost.created_at).toLocaleString()}
+                  </p>
+                  <div style={styles.postBody}>{selectedPost.body || 'No content'}</div>
+                  <button onClick={() => deletePost(selectedPost)} style={styles.deleteButton}>
+                    Remove post
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!['Dashboard', 'Members', 'Posts'].includes(active) && (
           <div style={styles.coming}>
             <div style={styles.comingIcon}>◈</div>
             <h2 style={styles.comingTitle}>{active}</h2>
@@ -537,6 +682,17 @@ const styles = {
   select: { height:44, border:'1px solid #ded1c3', borderRadius:12, padding:'0 12px', fontSize:12, background:'#fffdf9' },
   refresh: { height:44, border:0, borderRadius:12, padding:'0 14px', background:'#7c1d25', color:'#fff', fontWeight:800, cursor:'pointer' },
   memberList: { display:'grid', gap:8 },
+  postList: { display:'grid', gap:8 },
+  postRow: { width:'100%', display:'flex', alignItems:'flex-start', gap:12, border:'1px solid #e7ddd3', background:'#fffdf9', borderRadius:15, padding:14, textAlign:'left', cursor:'pointer' },
+  postIcon: { width:40, height:40, borderRadius:12, display:'grid', placeItems:'center', background:'#f0e2d2', flexShrink:0 },
+  postInfo: { flex:1, minWidth:0 },
+  postTitle: { display:'block', fontSize:12, color:'#281b18', marginBottom:4 },
+  postMeta: { display:'block', fontSize:10, color:'#8b7d75' },
+  postPreview: { display:'block', fontSize:10, color:'#6f625b', marginTop:6, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
+  postDate: { fontSize:9, color:'#a09289', whiteSpace:'nowrap', paddingTop:3 },
+  postDetailType: { display:'inline-block', fontSize:9, fontWeight:800, color:'#7c1d25', background:'#f5e9e7', borderRadius:7, padding:'5px 8px', marginBottom:8 },
+  postBody: { margin:'18px 0', background:'#f8f4ed', borderRadius:13, padding:14, fontSize:12, lineHeight:1.6, color:'#3b2d28', whiteSpace:'pre-wrap' },
+  deleteButton: { width:'100%', height:46, border:0, borderRadius:12, background:'#9a302b', color:'#fff', fontWeight:800, cursor:'pointer' },
   memberRow: { width:'100%', display:'flex', alignItems:'center', gap:12, border:'1px solid #e7ddd3', background:'#fffdf9', borderRadius:15, padding:12, textAlign:'left', cursor:'pointer' },
   memberAvatar: { width:42, height:42, borderRadius:14, display:'grid', placeItems:'center', background:'#ead7b7', color:'#7c1d25', fontWeight:900, flexShrink:0 },
   memberInfo: { flex:1, minWidth:0 },
