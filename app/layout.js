@@ -1,4 +1,5 @@
 import './globals.css';
+import AuthGate from '../components/AuthGate';
 
 export const metadata = {
   title: 'Kantha Pranth — Bengaluru Jain Community',
@@ -6,5 +7,5 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><AuthGate>{children}</AuthGate></body></html>;
 }
