@@ -51,6 +51,8 @@ export default function Home() {
   const [locality, setLocality] = useState('Nagarbhavi');
   const [posts, setPosts] = useState(initialPosts);
   const [communityFilter, setCommunityFilter] = useState('All');
+  const [communitySearch, setCommunitySearch] = useState('');
+  const [selectedPost, setSelectedPost] = useState(null);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberPosts, setMemberPosts] = useState([]);
@@ -100,7 +102,7 @@ export default function Home() {
           await loadUserProfile(data.session);
           await loadPosts();
           await loadFamilies();
-          await loadNotifications();
+          await loadNotifications(data.session.user.id);
         } else {
           setAuthenticated(false);
           setGuestMode(false);
@@ -121,6 +123,7 @@ export default function Home() {
           await loadUserProfile(session);
           await loadPosts();
           await loadFamilies();
+          await loadNotifications(session.user.id);
         }
       });
       unsubscribe = () => listener?.subscription?.unsubscribe?.();
@@ -141,7 +144,7 @@ export default function Home() {
     if (!supabase || !userId) return;
     const [{ data: profile, error: profileError }, { data: postRows }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, avatar_url, bio, locality_id, is_verified, created_at').eq('id', userId).maybeSingle(),
-      supabase.from('posts').select('id, author_id, locality_id, type, title, body, image_url, created_at').eq('author_id', userId).order('created_at', { ascending:false }).limit(10)
+      supabase.from('posts').select('id, author_id, locality_id, type, title, body, image_url, is_pinned, created_at').eq('author_id', userId).order('created_at', { ascending:false }).limit(10)
     ]);
     if (profileError || !profile) return setToast('Could not load member profile');
     let localityName = 'Bengaluru';
@@ -153,9 +156,9 @@ export default function Home() {
     setMemberPosts((postRows || []).map(p => ({ ...p, author_id:userId, author:profile.full_name || 'Community Member', area:localityName, time:formatPostTime(p.created_at), text:p.body, avatar:initialsFromName(profile.full_name || 'Community Member'), image_url:p.image_url || '' })));
   }
 
-  async function loadNotifications() {
-    if (!supabase || !currentUserId) return;
-    const { data } = await supabase.from('notifications').select('id, type, post_id, message, read_at, created_at').eq('user_id', currentUserId).order('created_at', { ascending: false }).limit(20);
+  async function loadNotifications(userId = currentUserId) {
+    if (!supabase || !userId) return;
+    const { data } = await supabase.from('notifications').select('id, type, post_id, message, read_at, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(20);
     setNotifications(data || []);
   }
 
@@ -174,14 +177,29 @@ export default function Home() {
   }, [toast]);
 
   const filteredCommunityPosts = useMemo(() => {
-    if (communityFilter === 'All') return posts;
+    const query = communitySearch.trim().toLowerCase();
     const type = communityFilter === 'Events' ? 'Event' : communityFilter;
-    return posts.filter(p => p.type === type);
-  }, [posts, communityFilter]);
+    return posts.filter(p => {
+      const matchesType = communityFilter === 'All' || p.type === type;
+      const matchesSearch = !query || `${p.title || ''} ${p.text || ''} ${p.author || ''} ${p.area || ''}`.toLowerCase().includes(query);
+      return matchesType && matchesSearch;
+    }).sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned));
+  }, [posts, communityFilter, communitySearch]);
 
   const filteredListings = useMemo(() => listings.filter(x => `${x.title} ${x.category} ${x.area}`.toLowerCase().includes(search.toLowerCase())), [listings, search]);
   const filteredServices = useMemo(() => services.filter(x => `${x.name} ${x.category} ${x.area}`.toLowerCase().includes(search.toLowerCase())), [search]);
   const filteredFamilies = useMemo(() => families.filter(f => `${f.family_name} ${f.localities?.name || ''}`.toLowerCase().includes(familySearch.toLowerCase())), [families, familySearch]);
+
+  useEffect(() => {
+    if (!authChecked || !posts.length || typeof window === 'undefined') return;
+    const postId = new URLSearchParams(window.location.search).get('post');
+    if (!postId) return;
+    const match = posts.find(p => String(p.id) === postId);
+    if (match) {
+      setActive('community');
+      setSelectedPost(match);
+    }
+  }, [authChecked, posts]);
 
   function whatsappUrl(phone) {
     if (!phone) return '#';
@@ -264,6 +282,7 @@ export default function Home() {
         title: post.title,
         text: post.body,
         image_url: post.image_url || '',
+        is_pinned: !!post.is_pinned,
         likes: 0,
         comments: 0,
         avatar: initialsFromName(profile?.full_name || 'Community Member')
@@ -766,7 +785,7 @@ export default function Home() {
           <div className="brand-mark">☀</div>
           <div><div className="brand">KANTHA PRANTH</div><div className="brand-sub">Jain Community · Bengaluru</div></div>
         </div>
-        <div className="top-actions" style={{ position:'relative' }}><button className="icon-btn" onClick={() => { setNotificationOpen(x => !x); loadNotifications(); if (!notificationOpen) markNotificationsRead(); }}>♧{unreadNotifications > 0 && <span style={{ position:'absolute', top:0, right:32, minWidth:16, height:16, borderRadius:99, background:'#7c1d25', color:'#fff', fontSize:9, display:'grid', placeItems:'center', padding:'0 3px' }}>{unreadNotifications}</span>}</button><button className="avatar mini" onClick={() => setActive('profile')}>{initialsFromName(userName || 'Guest')}</button>{notificationOpen && <div style={{ position:'absolute', right:0, top:48, width:300, maxWidth:'calc(100vw - 32px)', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:16, padding:12, boxShadow:'0 16px 40px rgba(55,30,20,.15)', zIndex:50 }}><div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}><b>Notifications</b><button className="text-btn" onClick={markNotificationsRead}>Mark all read</button></div>{notifications.length ? notifications.map(n => <div key={n.id} style={{ padding:'10px 4px', borderTop:'1px solid #f0e7df', fontSize:12 }}>{n.message}<small style={{ display:'block', color:'#9a8e86', marginTop:3 }}>{formatPostTime(n.created_at)}</small></div>) : <small style={{ color:'#8c8179' }}>No notifications yet.</small>}</div>}</div>
+        <div className="top-actions" style={{ position:'relative' }}><button className="icon-btn" onClick={() => { setNotificationOpen(x => !x); loadNotifications(); if (!notificationOpen) markNotificationsRead(); }}>♧{unreadNotifications > 0 && <span style={{ position:'absolute', top:0, right:32, minWidth:16, height:16, borderRadius:99, background:'#7c1d25', color:'#fff', fontSize:9, display:'grid', placeItems:'center', padding:'0 3px' }}>{unreadNotifications}</span>}</button><button className="avatar mini" onClick={() => setActive('profile')}>{initialsFromName(userName || 'Guest')}</button>{notificationOpen && <div style={{ position:'absolute', right:0, top:48, width:300, maxWidth:'calc(100vw - 32px)', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:16, padding:12, boxShadow:'0 16px 40px rgba(55,30,20,.15)', zIndex:50 }}><div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}><b>Notifications</b><button className="text-btn" onClick={markNotificationsRead}>Mark all read</button></div>{notifications.length ? notifications.map(n => <button key={n.id} type="button" onClick={() => { const match = posts.find(p => String(p.id) === String(n.post_id)); if (match) { setActive('community'); setSelectedPost(match); setNotificationOpen(false); } }} style={{ width:'100%', textAlign:'left', padding:'10px 4px', border:0, borderTop:'1px solid #f0e7df', background:'transparent', cursor:n.post_id ? 'pointer' : 'default', fontSize:12 }}>{n.message}<small style={{ display:'block', color:'#9a8e86', marginTop:3 }}>{formatPostTime(n.created_at)}</small></button>) : <small style={{ color:'#8c8179' }}>No notifications yet.</small>}</div>}</div>
       </header>
 
       <section className="content">
@@ -785,7 +804,7 @@ export default function Home() {
           <EventCard event={events[0]} onClick={() => setSelectedEvent(events[0])} />
         </>}
 
-        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => setShowPost(true)}>＋ Post</button>}><div className="filter-row">{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
+        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => setShowPost(true)}>＋ Post</button>}><div className="search" style={{ marginTop:12 }}><span>⌕</span><input value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="Search community posts..." /></div><div className="filter-row" style={{ marginTop:10 }}>{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
 
         {active === 'family' && <Page title="Family Directory" subtitle="Connect with Jain families in your community" action={authenticated && !guestMode && supabase ? <button className="primary small" onClick={() => setShowFamilyForm(true)}>＋ Add family</button> : null}>
           <div className="directory-banner"><div className="directory-icon">👨‍👩‍👧‍👦</div><div><b>A community family directory</b><p>Choose what your family shares. Phone numbers and private details are never displayed by default.</p></div></div>
@@ -800,6 +819,8 @@ export default function Home() {
         {active === 'services' && <Page title="Services" subtitle="Trusted people & businesses in your community"><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search doctors, CA, lawyers..." /></div><div className="service-grid">{['Doctors','CA','Lawyers','Education','Home Services','Travel','Catering','Other'].map(x => <button className="service-cat" key={x}><span>{x === 'Doctors' ? '🩺' : x === 'CA' ? '📊' : x === 'Lawyers' ? '⚖️' : x === 'Travel' ? '✈️' : '✦'}</span><b>{x}</b></button>)}</div><SectionHeader title="Featured services" action="See all" />{filteredServices.map(s => <ServiceCard key={s.name} service={s} onToast={setToast} />)}</Page>}
 
         {active === 'events' && <Page title="Events" subtitle="Meet, celebrate and contribute"><div className="event-tabs"><Pill tone="active">Upcoming</Pill><Pill>My events</Pill><Pill>Past</Pill></div>{events.map(e => <EventCard key={e.id} event={e} onClick={() => setSelectedEvent(e)} />)}</Page>}
+
+        {selectedPost && <Modal title="Community Post" close={() => { setSelectedPost(null); if (typeof window !== 'undefined' && window.location.search) window.history.replaceState({}, '', window.location.pathname); }}><PostCard post={selectedPost} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} /></Modal>}
 
         {selectedMember && <Modal title="Community Profile" close={() => { setSelectedMember(null); setMemberPosts([]); }}><div style={{ textAlign:'center', padding:'8px 0 18px' }}><Avatar initials={initialsFromName(selectedMember.full_name || 'Community Member')} large /><h2 style={{ margin:'12px 0 4px' }}>{selectedMember.full_name || 'Community Member'} {selectedMember.is_verified && <span className="verified">✓ Verified</span>}</h2><p style={{ margin:0, color:'#8b7d75', fontSize:12 }}>⌖ {selectedMember.localityName}</p>{selectedMember.bio && <p style={{ fontSize:12, lineHeight:1.5, color:'#5f534d', marginTop:10 }}>{selectedMember.bio}</p>}<small style={{ color:'#9a8e86' }}>Member since {new Date(selectedMember.created_at).toLocaleDateString()}</small></div><h3 style={{ margin:'10px 0' }}>Recent posts</h3>{memberPosts.length ? memberPosts.map(p => <PostCard key={p.id} post={p} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner">No posts yet.</div>}</Modal>}
 
@@ -1214,7 +1235,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, onPo
       {isOwnPost ? <><button className="soft-btn" onClick={() => { setEditing(true); setShowMenu(false); }}>✏️ Edit</button><button className="soft-btn" onClick={deletePost}>🗑️ Delete</button></> : <><button className="soft-btn" onClick={toggleSaved}>{saved ? '🔖 Saved' : '🔖 Save'}</button><button className="soft-btn" onClick={reportPost}>🚩 Report</button></>}
       <button className="soft-btn" onClick={sharePost}>↗ Copy/share</button>
     </div>}
-    <Pill tone={post.type === 'Help' ? 'help' : ''}>{post.type}</Pill>
+    <div style={{ display:'flex', gap:7, alignItems:'center', marginTop:8 }}><Pill tone={post.type === 'Help' ? 'help' : ''}>{post.type}</Pill>{post.is_pinned && <Pill>📌 Pinned</Pill>}</div>
     {editing ? <form onSubmit={editPost} style={{ display:'grid', gap:9, marginTop:10 }}>
       <input value={editTitle} onChange={e => setEditTitle(e.target.value)} />
       <textarea rows="4" value={editBody} onChange={e => setEditBody(e.target.value)} />
@@ -1231,7 +1252,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, onPo
       <div style={{ display:'grid', gap:9, maxHeight:240, overflowY:'auto' }}>
         {comments.length ? comments.filter(c => !c.parent_id).map(c => <div key={c.id} style={{ background:'#faf7f2', borderRadius:12, padding:'9px 11px' }}><div style={{ display:'flex', justifyContent:'space-between', gap:8 }}><b style={{ fontSize:11 }}>{c.profiles?.full_name || 'Community Member'}</b><div style={{ display:'flex', gap:6 }}>{authenticated && !guestMode && <button className="more" onClick={() => setReplyTo(c.id)}>↩</button>}{c.user_id === currentUserId && <button className="more" onClick={() => deleteComment(c.id)}>×</button>}</div></div><div style={{ fontSize:12, marginTop:3 }}>{c.body}</div>{comments.filter(r => r.parent_id === c.id).map(r => <div key={r.id} style={{ margin:'8px 0 0 18px', padding:'8px', background:'#fff', borderRadius:10 }}><b style={{ fontSize:10 }}>{r.profiles?.full_name || 'Community Member'}</b><div style={{ fontSize:11, marginTop:2 }}>{r.body}</div>{r.user_id === currentUserId && <button className="more" onClick={() => deleteComment(r.id)}>×</button>}</div>)}</div>) : <small style={{ color:'#8c8179' }}>No comments yet. Be the first.</small>}
       </div>
-      {authenticated && !guestMode && <form onSubmit={addComment} style={{ display:'flex', gap:7, marginTop:10 }}><input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder={replyTo ? "Write a reply…" : "Write a comment…"} style={{ flex:1, minWidth:0 }} /><button className="primary small" disabled={!commentText.trim()}>Post</button></form>}
+      {replyTo && <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:9, padding:'7px 9px', background:'#fff6e8', borderRadius:9, fontSize:10 }}><span>↩ Replying to a comment</span><button type="button" className="text-btn" onClick={() => setReplyTo(null)}>Cancel</button></div>}{authenticated && !guestMode && <form onSubmit={addComment} style={{ display:'flex', gap:7, marginTop:10 }}><input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder={replyTo ? "Write a reply…" : "Write a comment…"} style={{ flex:1, minWidth:0 }} /><button className="primary small" disabled={!commentText.trim()}>Post</button></form>}
     </div>}
   </article>;
 }
