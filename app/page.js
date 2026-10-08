@@ -1070,9 +1070,17 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode }) {
   async function openComments() {
     setShowComments(true);
     if (!supabase || typeof post.id !== 'string') return;
-    const { data, error } = await supabase.from('post_comments').select('id, body, created_at, user_id, profiles(full_name)').eq('post_id', post.id).order('created_at', { ascending: true });
+    const { data, error } = await supabase.from('post_comments').select('id, body, created_at, user_id').eq('post_id', post.id).order('created_at', { ascending: true });
     if (error) return onToast(error.message);
-    setComments(data || []);
+    const rows = data || [];
+    const userIds = [...new Set(rows.map(x => x.user_id).filter(Boolean))];
+    let profileMap = new Map();
+    if (userIds.length) {
+      const { data: profiles, error: profileError } = await supabase.from('profiles').select('id, full_name').in('id', userIds);
+      if (profileError) return onToast(profileError.message);
+      profileMap = new Map((profiles || []).map(x => [x.id, x]));
+    }
+    setComments(rows.map(comment => ({ ...comment, profiles: profileMap.get(comment.user_id) || null })));
   }
 
   async function addComment(e) {
