@@ -52,6 +52,7 @@ export default function Home() {
   const [posts, setPosts] = useState(initialPosts);
   const [listings, setListings] = useState(initialListings);
   const [showPost, setShowPost] = useState(false);
+  const [postBusy, setPostBusy] = useState(false);
   const [showListing, setShowListing] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -91,6 +92,7 @@ export default function Home() {
           setCurrentUserId(data.session.user.id);
           setGuestMode(false);
           await loadUserProfile(data.session);
+          await loadPosts();
           await loadFamilies();
         } else {
           setAuthenticated(false);
@@ -110,6 +112,7 @@ export default function Home() {
         setGuestMode(false);
         if (session) {
           await loadUserProfile(session);
+          await loadPosts();
           await loadFamilies();
         }
       });
@@ -180,6 +183,49 @@ export default function Home() {
     }
 
     setNeedsProfile(!profile?.full_name);
+  }
+
+  async function loadPosts() {
+    if (!supabase) return;
+
+    const [
+      { data: postRows, error: postError },
+      { data: profileRows, error: profileError },
+      { data: localityRows, error: localityError }
+    ] = await Promise.all([
+      supabase
+        .from('posts')
+        .select('id, author_id, locality_id, type, title, body, created_at')
+        .order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, full_name, avatar_url'),
+      supabase.from('localities').select('id, name')
+    ]);
+
+    if (postError) {
+      setToast(postError.message || 'Could not load community posts');
+      return;
+    }
+
+    const profileMap = new Map((profileRows || []).map(x => [x.id, x]));
+    const localityMap = new Map((localityRows || []).map(x => [x.id, x.name]));
+
+    const mapped = (postRows || []).map(post => {
+      const profile = profileMap.get(post.author_id);
+      return {
+        id: post.id,
+        type: post.type || 'Discussion',
+        author: profile?.full_name || 'Community Member',
+        time: formatPostTime(post.created_at),
+        area: localityMap.get(post.locality_id) || 'Bengaluru',
+        title: post.title,
+        text: post.body,
+        likes: 0,
+        comments: 0,
+        avatar: initialsFromName(profile?.full_name || 'Community Member')
+      };
+    });
+
+    setPosts(mapped);
   }
 
   async function loadFamilies() {
@@ -557,15 +603,52 @@ export default function Home() {
   }
 
 
-  function addPost(e) {
+  async function addPost(e) {
     e.preventDefault();
+
+    if (!supabase || !authenticated || guestMode || !currentUserId) {
+      return setToast('Please sign in to publish a community post');
+    }
+
     const fd = new FormData(e.currentTarget);
     const title = fd.get('title')?.toString().trim();
-    const text = fd.get('text')?.toString().trim();
+    const body = fd.get('text')?.toString().trim();
     const type = fd.get('type')?.toString() || 'Discussion';
-    if (!title || !text) return setToast('Add a title and message');
-    setPosts([{ id: Date.now(), type, author: userName || 'Community Member', time: 'now', area: locality, title, text, likes: 0, comments: 0, avatar: initialsFromName(userName || 'Community Member') }, ...posts]);
-    setShowPost(false); setActive('community'); setToast('Post published to the community');
+
+    if (!title || !body) return setToast('Add a title and message');
+
+    setPostBusy(true);
+
+    try {
+      const { data: localityRow, error: localityError } = await supabase
+        .from('localities')
+        .select('id, name')
+        .eq('name', locality)
+        .maybeSingle();
+
+      if (localityError || !localityRow) {
+        return setToast('Could not find your locality');
+      }
+
+      const { error: insertError } = await supabase.from('posts').insert({
+        author_id: currentUserId,
+        locality_id: localityRow.id,
+        type,
+        title,
+        body
+      });
+
+      if (insertError) {
+        return setToast(insertError.message || 'Could not publish post');
+      }
+
+      await loadPosts();
+      setShowPost(false);
+      setActive('community');
+      setToast('Post published to the community');
+    } finally {
+      setPostBusy(false);
+    }
   }
 
   function addListing(e) {
@@ -662,7 +745,7 @@ export default function Home() {
       <button className="fab" onClick={() => setShowPost(true)}>＋</button>
       <nav className="bottom-nav">{nav.map(([id, icon, label]) => <button key={id} className={active === id ? 'selected' : ''} onClick={() => setActive(id)}><span>{icon}</span><small>{label}</small></button>)}</nav>
 
-      {showPost && <Modal title="Create a community post" close={() => setShowPost(false)}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." /></label><button className="primary full">Publish post</button></form></Modal>}
+      {showPost && <Modal title="Create a community post" close={() => setShowPost(false)}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><button className="primary full" disabled={postBusy}>{postBusy ? 'Publishing…' : 'Publish post'}</button></form></Modal>}
       {showListing && <Modal title="Sell something" close={() => setShowListing(false)}><form onSubmit={addListing} className="form"><label>Product name<input name="title" placeholder="e.g. Study table" /></label><label>Price<input name="price" inputMode="numeric" placeholder="2500" /></label><label>Category<select name="category"><option>Furniture</option><option>Electronics</option><option>Books</option><option>Vehicles</option><option>Property</option><option>Other</option></select></label><button className="primary full">Publish listing</button></form></Modal>}
       {showFamilyForm && <Modal title="Add your family" close={() => { setShowFamilyForm(false); setFamilyPhotoPreview(''); }}><form onSubmit={createFamily} className="form"><div className="info-banner"><b>Privacy first</b><p>All contact details are optional. They are shown only when you choose “Show contact details”.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" onChange={e => { const file=e.target.files?.[0]; setFamilyPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{familyPhotoPreview && <img className="family-photo-preview" src={familyPhotoPreview} alt="Family preview" />}<label>Family name <span className="optional">(optional)</span><input name="family_name" placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue="community"><option value="community">Community members</option><option value="private">Private — only me</option></select></label><label>Family members<small className="field-help">One member per line. Example: Rajesh Jain — Father</small><textarea name="members" rows="5" placeholder="Rajesh Jain — Father&#10;Sunita Jain — Mother&#10;Aarav Jain — Son"></textarea></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Add family to directory'}</button></form></Modal>}
       {showFamilyEdit && editingFamily && <Modal title="Edit family details" close={() => { setShowFamilyEdit(false); setEditingFamily(null); }}><form onSubmit={updateFamily} className="form"><div className="info-banner"><b>Update anytime</b><p>You can remove the family name, replace the photo, or change which contact details the community can see.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" /></label>{editingFamily.photo_url && <img className="family-photo-preview" src={editingFamily.photo_url} alt="Current family" />}<label className="check-row"><input name="remove_photo" type="checkbox" /> Remove current family photo</label><label>Family name <span className="optional">(optional)</span><input name="family_name" defaultValue={editingFamily.family_name || ''} placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" defaultChecked={!editingFamily.family_name} /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={editingFamily.localities?.name || locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" defaultValue={editingFamily.address || ''} placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" defaultValue={editingFamily.phone || ''} placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" defaultValue={editingFamily.email || ''} placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" defaultChecked={!!editingFamily.show_contact} /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue={editingFamily.visibility || 'community'}><option value="community">Community members</option><option value="private">Private — only me</option></select></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Save family details'}</button></form></Modal>}
@@ -718,6 +801,21 @@ export default function Home() {
   );
 }
 
+
+
+function formatPostTime(value) {
+  if (!value) return 'now';
+  const created = new Date(value);
+  const diff = Math.max(0, Date.now() - created.getTime());
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return created.toLocaleDateString();
+}
 
 function initialsFromName(name) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
