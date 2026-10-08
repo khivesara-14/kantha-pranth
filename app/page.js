@@ -76,6 +76,8 @@ export default function Home() {
   const [profileLocality, setProfileLocality] = useState('Nagarbhavi');
   const [needsProfile, setNeedsProfile] = useState(false);
   const [profileBusy, setProfileBusy] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ full_name:'', phone:'', date_of_birth:'', marital_status:'', blood_group:'', mobile_number:'', occupation:'', highest_education:'', parents_name:'' });
   const [authenticated, setAuthenticated] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [isVerifiedUser, setIsVerifiedUser] = useState(false);
@@ -233,6 +235,20 @@ export default function Home() {
       setUserName(profile.full_name);
     }
 
+    if (profile) {
+      setProfileForm({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        date_of_birth: profile.date_of_birth || '',
+        marital_status: profile.marital_status || '',
+        blood_group: profile.blood_group || '',
+        mobile_number: profile.mobile_number || profile.phone || '',
+        occupation: profile.occupation || '',
+        highest_education: profile.highest_education || '',
+        parents_name: profile.parents_name || ''
+      });
+    }
+
     // First login after registration: create the community profile from the
     // registration details stored in Supabase Auth metadata.
     if (!profile) {
@@ -277,6 +293,34 @@ export default function Home() {
     }
 
     setNeedsProfile(!profile?.full_name);
+  }
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    if (!supabase || !currentUserId) return;
+    const mobile = (profileForm.mobile_number || '').replace(/\D/g, '');
+    if (!profileForm.full_name.trim()) return setToast('Please enter your full name');
+    if (mobile && mobile.length !== 10) return setToast('Please enter a valid 10-digit mobile number');
+    setProfileBusy(true);
+    const payload = {
+      full_name: profileForm.full_name.trim(),
+      phone: mobile || null,
+      mobile_number: mobile || null,
+      date_of_birth: profileForm.date_of_birth || null,
+      marital_status: profileForm.marital_status || null,
+      blood_group: profileForm.blood_group || null,
+      occupation: profileForm.occupation.trim() || null,
+      highest_education: profileForm.highest_education || null,
+      parents_name: profileForm.parents_name.trim() || null,
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await supabase.from('profiles').update(payload).eq('id', currentUserId);
+    setProfileBusy(false);
+    if (error) return setToast(error.message || 'Could not update profile');
+    setUserName(payload.full_name);
+    setProfileForm(prev => ({...prev, phone:mobile, mobile_number:mobile}));
+    setShowEditProfile(false);
+    setToast('Profile updated successfully');
   }
 
   async function loadPosts() {
@@ -862,13 +906,25 @@ export default function Home() {
 
         {selectedMember && <Modal title="Community Profile" close={() => { setSelectedMember(null); setMemberPosts([]); }}><div style={{ textAlign:'center', padding:'8px 0 18px' }}><Avatar initials={initialsFromName(selectedMember.full_name || 'Community Member')} large /><h2 style={{ margin:'12px 0 4px' }}>{selectedMember.full_name || 'Community Member'} {selectedMember.is_verified && <span className="verified">✓ Verified</span>}</h2><p style={{ margin:0, color:'#8b7d75', fontSize:12 }}>⌖ {selectedMember.localityName}</p>{selectedMember.bio && <p style={{ fontSize:12, lineHeight:1.5, color:'#5f534d', marginTop:10 }}>{selectedMember.bio}</p>}<small style={{ color:'#9a8e86' }}>Member since {new Date(selectedMember.created_at).toLocaleDateString()}</small></div><h3 style={{ margin:'10px 0' }}>Recent posts</h3>{memberPosts.length ? memberPosts.map(p => <PostCard key={p.id} post={p} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner">No posts yet.</div>}</Modal>}
 
-        {active === 'profile' && <Page title="My Profile" subtitle="Your community identity"><div className="profile-card"><Avatar initials={initialsFromName(userName || 'Guest')} large /><h2>{userName || 'Guest Member'}</h2><p>Kantha Pranth member · {locality}</p><div className="profile-stats"><div><b>{posts.filter(p => p.author === (userName || 'Community Member')).length}</b><span>Posts</span></div><div><b>0</b><span>Listings</span></div><div><b>1</b><span>Events</span></div></div></div><div className="settings-list">{['Edit profile','My listings','Saved posts','Privacy & visibility','Help & support'].map(x => <button key={x} onClick={() => setToast(`${x} will be available in the next build`)}><span>{x}</span><b>›</b></button>)}</div>{authenticated ? <button className="outline full" onClick={signOut}>Sign out</button> : <button className="outline full" onClick={() => setShowLogin(true)}>Sign in / Create account</button>}</Page>}
+        {active === 'profile' && <Page title="My Profile" subtitle="Your community identity"><div className="profile-card"><Avatar initials={initialsFromName(userName || 'Guest')} large /><h2>{userName || 'Guest Member'}</h2><p>Kantha Pranth member · {locality}</p>{authenticated && !guestMode && <button className="primary full" onClick={() => setShowEditProfile(true)}>✎ Edit profile</button>}<div className="profile-stats"><div><b>{posts.filter(p => p.author === (userName || 'Community Member')).length}</b><span>Posts</span></div><div><b>0</b><span>Listings</span></div><div><b>1</b><span>Events</span></div></div></div><div className="settings-list">{['My listings','Saved posts','Privacy & visibility','Help & support'].map(x => <button key={x} onClick={() => setToast(x + ' will be available in the next build')}><span>{x}</span><b>›</b></button>)}</div>{authenticated ? <button className="outline full" onClick={signOut}>Sign out</button> : <button className="outline full" onClick={() => setShowLogin(true)}>Sign in / Create account</button>}</Page>}
 
         {active === 'help' && <Page title="Community Help" subtitle="Support one another"><div className="help-grid">{[['🩸','Blood requirement'],['🔎','Lost & found'],['🤝','Volunteer'],['❤️','Support request']].map(([i,x]) => <button key={x} className="help-card" onClick={() => setToast('Help request flow coming next') }><span>{i}</span><b>{x}</b><small>Post to your local community</small></button>)}</div><div className="info-banner"><b>Safety first</b><p>Important help requests will be moderated. Never share sensitive personal or financial information publicly.</p></div></Page>}
       </section>
 
       <button className="fab" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋</button>
       <nav className="bottom-nav">{nav.map(([id, icon, label]) => <button key={id} className={active === id ? 'selected' : ''} onClick={() => setActive(id)}><span>{icon}</span><small>{label}</small></button>)}</nav>
+
+      {showEditProfile && <Modal title="Edit profile" close={() => setShowEditProfile(false)}><form onSubmit={saveProfile} className="form">
+        <label>Full name<input value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name:e.target.value})} required /></label>
+        <label>Mobile number<input value={profileForm.mobile_number} onChange={e => setProfileForm({...profileForm, mobile_number:e.target.value.replace(/\D/g,'').slice(0,10)})} type="tel" inputMode="numeric" /></label>
+        <label>Date of birth<input value={profileForm.date_of_birth} onChange={e => setProfileForm({...profileForm, date_of_birth:e.target.value})} type="date" max={new Date().toISOString().split('T')[0]} /></label>
+        <label>Marital status<select value={profileForm.marital_status} onChange={e => setProfileForm({...profileForm, marital_status:e.target.value})}><option value="">Select marital status</option><option>Single</option><option>Married</option><option>Divorced</option><option>Widowed</option><option>Prefer not to say</option></select></label>
+        <label>Blood group<select value={profileForm.blood_group} onChange={e => setProfileForm({...profileForm, blood_group:e.target.value})}><option value="">Select blood group</option>{['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g => <option key={g}>{g}</option>)}</select></label>
+        <label>Occupation<input value={profileForm.occupation} onChange={e => setProfileForm({...profileForm, occupation:e.target.value})} /></label>
+        <label>Highest education qualification<select value={profileForm.highest_education} onChange={e => setProfileForm({...profileForm, highest_education:e.target.value})}><option value="">Select qualification</option><option>School</option><option>PUC / 12th</option><option>Diploma</option><option>Undergraduate</option><option>Postgraduate</option><option>Doctorate</option><option>Other</option></select></label>
+        <label>Parents' name<input value={profileForm.parents_name} onChange={e => setProfileForm({...profileForm, parents_name:e.target.value})} /></label>
+        <button type="submit" disabled={profileBusy} className="primary full">{profileBusy ? 'Saving…' : 'Save changes'}</button>
+      </form></Modal>}
 
       {showPost && <Modal title="Create a community post" close={() => { setShowPost(false); setPostPhotoPreview(''); }}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><label>Photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0]; setPostPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{postPhotoPreview && <img className="family-photo-preview" src={postPhotoPreview} alt="Post preview" />}<button className="primary full" disabled={postBusy || !isVerifiedUser}>{postBusy ? 'Publishing…' : !isVerifiedUser ? 'Verification required' : 'Publish post'}</button></form></Modal>}
       {showListing && <Modal title="Sell something" close={() => setShowListing(false)}><form onSubmit={addListing} className="form"><label>Product name<input name="title" placeholder="e.g. Study table" /></label><label>Price<input name="price" inputMode="numeric" placeholder="2500" /></label><label>Category<select name="category"><option>Furniture</option><option>Electronics</option><option>Books</option><option>Vehicles</option><option>Property</option><option>Other</option></select></label><button className="primary full">Publish listing</button></form></Modal>}
