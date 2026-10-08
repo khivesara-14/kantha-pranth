@@ -1023,14 +1023,21 @@ function ProfileSetupScreen({ userName, setUserName, profileLocality, setProfile
 
 function Page({ title, subtitle, action, children }) { return <div className="page"><div className="page-head"><div><p className="eyebrow">KANTHA PRANTH</p><h1>{title}</h1><p>{subtitle}</p></div>{action}</div>{children}</div>; }
 function SectionHeader({ title, action, onClick }) { return <div className="section-head"><h2>{title}</h2>{action && <button onClick={onClick}>{action} ›</button>}</div>; }
-function PostCard({ post, onToast, currentUserId, authenticated, guestMode }) {
+function PostCard({ post, onToast, currentUserId, authenticated, guestMode, onPostChanged }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [commentCount, setCommentCount] = useState(post.comments || 0);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(post.title || '');
+  const [editBody, setEditBody] = useState(post.text || '');
+  const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const isOwnPost = !!currentUserId && currentUserId === post.author_id;
 
   useEffect(() => {
     let active = true;
@@ -1044,8 +1051,11 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode }) {
       setLikeCount(likes || 0);
       setCommentCount(commentsTotal || 0);
       if (currentUserId) {
-        const { data } = await supabase.from('post_likes').select('id').eq('post_id', post.id).eq('user_id', currentUserId).maybeSingle();
-        if (active) setLiked(!!data);
+        const [{ data: likeRow }, { data: savedRow }] = await Promise.all([
+          supabase.from('post_likes').select('id').eq('post_id', post.id).eq('user_id', currentUserId).maybeSingle(),
+          supabase.from('saved_posts').select('id').eq('post_id', post.id).eq('user_id', currentUserId).maybeSingle()
+        ]);
+        if (active) { setLiked(!!likeRow); setSaved(!!savedRow); }
       }
     }
     loadInteractions();
@@ -1057,12 +1067,10 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode }) {
     setBusy(true);
     if (liked) {
       const { error } = await supabase.from('post_likes').delete().eq('post_id', post.id).eq('user_id', currentUserId);
-      if (!error) { setLiked(false); setLikeCount(x => Math.max(0, x - 1)); }
-      else onToast(error.message);
+      if (!error) { setLiked(false); setLikeCount(x => Math.max(0, x - 1)); } else onToast(error.message);
     } else {
       const { error } = await supabase.from('post_likes').insert({ post_id: post.id, user_id: currentUserId });
-      if (!error) { setLiked(true); setLikeCount(x => x + 1); }
-      else onToast(error.message);
+      if (!error) { setLiked(true); setLikeCount(x => x + 1); } else onToast(error.message);
     }
     setBusy(false);
   }
@@ -1095,28 +1103,86 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode }) {
     await openComments();
   }
 
+  async function deleteComment(commentId) {
+    if (!supabase || !currentUserId) return;
+    const { error } = await supabase.from('post_comments').delete().eq('id', commentId).eq('user_id', currentUserId);
+    if (error) return onToast(error.message);
+    await openComments();
+    setCommentCount(x => Math.max(0, x - 1));
+  }
+
+  async function toggleSaved() {
+    if (!supabase || !authenticated || guestMode || !currentUserId) return onToast('Please sign in to save posts');
+    if (saved) {
+      const { error } = await supabase.from('saved_posts').delete().eq('post_id', post.id).eq('user_id', currentUserId);
+      if (!error) { setSaved(false); onToast('Post removed from saved'); } else onToast(error.message);
+    } else {
+      const { error } = await supabase.from('saved_posts').insert({ post_id: post.id, user_id: currentUserId });
+      if (!error) { setSaved(true); onToast('Post saved'); } else onToast(error.message);
+    }
+  }
+
+  async function editPost(e) {
+    e.preventDefault();
+    if (!supabase || !isOwnPost) return;
+    const title = editTitle.trim(), body = editBody.trim();
+    if (!title || !body) return onToast('Title and message are required');
+    const { error } = await supabase.from('posts').update({ title, body, updated_at: new Date().toISOString() }).eq('id', post.id).eq('author_id', currentUserId);
+    if (error) return onToast(error.message);
+    setEditing(false);
+    onToast('Post updated');
+    onPostChanged?.();
+  }
+
+  async function deletePost() {
+    if (!supabase || !isOwnPost) return;
+    if (!window.confirm('Delete this post? This cannot be undone.')) return;
+    const { error } = await supabase.from('posts').delete().eq('id', post.id).eq('author_id', currentUserId);
+    if (error) return onToast(error.message);
+    onToast('Post deleted');
+    onPostChanged?.();
+  }
+
+  async function reportPost() {
+    if (!supabase || !authenticated || guestMode || !currentUserId) return onToast('Please sign in to report a post');
+    const reason = window.prompt('Why are you reporting this post?\n\nExamples: Spam, inappropriate content, misinformation, other');
+    if (!reason?.trim()) return;
+    const { error } = await supabase.from('post_reports').insert({ post_id: post.id, reporter_id: currentUserId, reason: reason.trim() });
+    if (error) return onToast(error.message);
+    onToast('Report submitted to the community team');
+    setShowMenu(false);
+  }
+
   async function sharePost() {
     const url = window.location.origin + window.location.pathname + '?post=' + encodeURIComponent(post.id);
     try {
       if (navigator.share) await navigator.share({ title: post.title, text: post.text, url });
       else { await navigator.clipboard.writeText(url); onToast('Post link copied'); }
-    } catch (error) {
-      if (error?.name !== 'AbortError') onToast('Could not share post');
-    }
+    } catch (error) { if (error?.name !== 'AbortError') onToast('Could not share post'); }
   }
 
   return <article className="post-card">
-    <div className="post-top"><Avatar initials={post.avatar} /><div className="post-author"><b>{post.author}</b><span>{post.time} · {post.area}</span></div><button className="more" onClick={() => onToast('More post actions coming soon')}>•••</button></div>
-    <Pill tone={post.type === 'Help' ? 'help' : ''}>{post.type}</Pill><h3>{post.title}</h3><p>{post.text}</p>
+    <div className="post-top"><Avatar initials={post.avatar} /><div className="post-author"><b>{post.author}</b><span>{post.time} · {post.area}</span></div><button className="more" onClick={() => setShowMenu(x => !x)}>•••</button></div>
+    {showMenu && <div style={{ display:'flex', flexWrap:'wrap', gap:7, margin:'8px 0 10px', justifyContent:'flex-end' }}>
+      {isOwnPost ? <><button className="soft-btn" onClick={() => { setEditing(true); setShowMenu(false); }}>✏️ Edit</button><button className="soft-btn" onClick={deletePost}>🗑️ Delete</button></> : <><button className="soft-btn" onClick={toggleSaved}>{saved ? '🔖 Saved' : '🔖 Save'}</button><button className="soft-btn" onClick={reportPost}>🚩 Report</button></>}
+      <button className="soft-btn" onClick={sharePost}>↗ Copy/share</button>
+    </div>}
+    <Pill tone={post.type === 'Help' ? 'help' : ''}>{post.type}</Pill>
+    {editing ? <form onSubmit={editPost} style={{ display:'grid', gap:9, marginTop:10 }}>
+      <input value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+      <textarea rows="4" value={editBody} onChange={e => setEditBody(e.target.value)} />
+      <div style={{ display:'flex', gap:8 }}><button className="primary small">Save changes</button><button type="button" className="soft-btn" onClick={() => setEditing(false)}>Cancel</button></div>
+    </form> : <><h3>{post.title}</h3><p>{post.text}</p></>}
     {post.image_url && <img src={post.image_url} alt="" style={{ width:'100%', maxHeight:360, objectFit:'cover', borderRadius:14, marginTop:10 }} />}
     <div className="post-actions">
       <button disabled={busy} onClick={toggleLike}>{liked ? '♥' : '♡'} {likeCount}</button>
       <button onClick={openComments}>◌ {commentCount}</button>
       <button onClick={sharePost}>↗ Share</button>
+      <button onClick={toggleSaved}>{saved ? '🔖' : '＋'} {saved ? 'Saved' : 'Save'}</button>
     </div>
     {showComments && <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid #eee3d8' }}>
       <div style={{ display:'grid', gap:9, maxHeight:240, overflowY:'auto' }}>
-        {comments.length ? comments.map(c => <div key={c.id} style={{ background:'#faf7f2', borderRadius:12, padding:'9px 11px' }}><b style={{ fontSize:11 }}>{c.profiles?.full_name || 'Community Member'}</b><div style={{ fontSize:12, marginTop:3 }}>{c.body}</div></div>) : <small style={{ color:'#8c8179' }}>No comments yet. Be the first.</small>}
+        {comments.length ? comments.map(c => <div key={c.id} style={{ background:'#faf7f2', borderRadius:12, padding:'9px 11px' }}><div style={{ display:'flex', justifyContent:'space-between', gap:8 }}><b style={{ fontSize:11 }}>{c.profiles?.full_name || 'Community Member'}</b>{c.user_id === currentUserId && <button className="more" onClick={() => deleteComment(c.id)}>×</button>}</div><div style={{ fontSize:12, marginTop:3 }}>{c.body}</div></div>) : <small style={{ color:'#8c8179' }}>No comments yet. Be the first.</small>}
       </div>
       {authenticated && !guestMode && <form onSubmit={addComment} style={{ display:'flex', gap:7, marginTop:10 }}><input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Write a comment…" style={{ flex:1, minWidth:0 }} /><button className="primary small" disabled={!commentText.trim()}>Post</button></form>}
     </div>}
