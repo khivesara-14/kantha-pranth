@@ -24,6 +24,9 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [active, setActive] = useState('Dashboard');
+  const [stats, setStats] = useState({ members: 0, posts: 0, businesses: 0, events: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
 
   useEffect(() => {
     if (!supabase) {
@@ -88,6 +91,36 @@ export default function AdminPage() {
 
     setSession(data.session);
     setAdmin(true);
+    loadStats();
+  }
+
+  async function loadStats() {
+    if (!supabase) return;
+    setStatsLoading(true);
+    setStatsError('');
+
+    try {
+      const [members, posts, businesses, events] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('posts').select('id', { count: 'exact', head: true }),
+        supabase.from('businesses').select('id', { count: 'exact', head: true }),
+        supabase.from('events').select('id', { count: 'exact', head: true })
+      ]);
+
+      const firstError = members.error || posts.error || businesses.error || events.error;
+      if (firstError) throw firstError;
+
+      setStats({
+        members: members.count || 0,
+        posts: posts.count || 0,
+        businesses: businesses.count || 0,
+        events: events.count || 0
+      });
+    } catch (e) {
+      setStatsError(e?.message || 'Could not load dashboard statistics.');
+    } finally {
+      setStatsLoading(false);
+    }
   }
 
   async function logout() {
@@ -160,14 +193,15 @@ export default function AdminPage() {
             <div style={styles.welcome}><div><div style={styles.eyebrow}>OVERVIEW</div><h2>Good to see you.</h2><p>Manage and grow the Kantha Pranth community from one place.</p></div><div style={styles.sun}>☀</div></div>
             <div style={styles.stats}>
               {[
-                ['👥', 'Members', '—', 'Connect member data'],
-                ['📝', 'Posts', '—', 'Connect feed data'],
-                ['🏪', 'Businesses', '—', 'Connect directory data'],
-                ['📅', 'Events', '—', 'Connect event data']
+                ['👥', 'Members', statsLoading ? '…' : stats.members.toLocaleString(), 'Live Supabase count'],
+                ['📝', 'Posts', statsLoading ? '…' : stats.posts.toLocaleString(), 'Live Supabase count'],
+                ['🏪', 'Businesses', statsLoading ? '…' : stats.businesses.toLocaleString(), 'Live Supabase count'],
+                ['📅', 'Events', statsLoading ? '…' : stats.events.toLocaleString(), 'Live Supabase count']
               ].map(([icon, title, value, note]) => (
                 <div key={title} style={styles.stat}><span style={styles.statIcon}>{icon}</span><small>{title}</small><strong>{value}</strong><em>{note}</em></div>
               ))}
             </div>
+            {statsError && <div style={styles.errorBanner}>{statsError}</div>}
             <div style={styles.grid}>
               <div style={styles.panel}><h3>Quick actions</h3><div style={styles.actions}>{['Review reports','Approve businesses','Manage members','Create event'].map(x => <button key={x} onClick={() => setActive(x.includes('business') ? 'Businesses' : x.includes('member') ? 'Members' : x.includes('event') ? 'Events' : 'Reports')} style={styles.action}>{x}<span>→</span></button>)}</div></div>
               <div style={styles.panel}><h3>System status</h3><div style={styles.status}><span>●</span> Authentication connected</div><div style={styles.status}><span>●</span> Admin authorization enabled</div><div style={styles.status}><span>●</span> Community app connected</div></div>
@@ -194,6 +228,7 @@ const styles = {
   input:{height:50,border:'1px solid #ded1c3',borderRadius:13,padding:'0 14px',fontSize:14,outline:'none'},
   primary:{height:52,border:0,borderRadius:13,background:'#7c1d25',color:'#fff',fontWeight:800,cursor:'pointer'},
   error:{background:'#fff0ed',border:'1px solid #efc9c2',borderRadius:10,padding:10,color:'#8e2926',fontSize:11},
+  errorBanner:{marginTop:14,background:'#fff8e8',border:'1px solid #ead9ad',borderRadius:12,padding:'11px 14px',color:'#76551d',fontSize:11},
   security:{marginTop:18,textAlign:'center',fontSize:10,color:'#8b7d75'},
   logo:{fontSize:42},
   app:{minHeight:'100vh',display:'flex',background:'#f5f1ea',fontFamily:'Arial,sans-serif',color:'#281b18'},
