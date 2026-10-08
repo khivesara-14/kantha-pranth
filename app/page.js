@@ -157,7 +157,8 @@ export default function Home() {
 
   const filteredCommunityPosts = useMemo(() => {
     if (communityFilter === 'All') return posts;
-    return posts.filter(p => p.type === communityFilter);
+    const type = communityFilter === 'Events' ? 'Event' : communityFilter;
+    return posts.filter(p => p.type === type);
   }, [posts, communityFilter]);
 
   const filteredListings = useMemo(() => listings.filter(x => `${x.title} ${x.category} ${x.area}`.toLowerCase().includes(search.toLowerCase())), [listings, search]);
