@@ -763,7 +763,7 @@ function AuthScreen({
           </label>
           {authMode === 'login' && <button type="button" className="forgot-btn" onClick={onResetPassword} disabled={authBusy}>Forgot password?</button>}
           {authFeedback && <div className="auth-feedback">{authFeedback}</div>}
-          <button type="submit" className="primary full auth-main-btn" onClick={(e) => { e.stopPropagation(); }} disabled={authBusy}>{authBusy ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}</button>
+          <button type="button" className="primary full auth-main-btn" onClick={onSubmit} disabled={authBusy}>{authBusy ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}</button>
         </form>
 
         <div className="auth-divider"><span>OR</span></div>
