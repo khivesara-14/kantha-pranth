@@ -19,3 +19,21 @@ on public.profiles
 for delete
 to authenticated
 using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
+
+-- Allow administrators to remove community posts during moderation.
+drop policy if exists "admins delete posts" on public.posts;
+create policy "admins delete posts"
+on public.posts
+for delete
+to authenticated
+using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
+-- Allow administrators to edit posts if moderation tools need it later.
+drop policy if exists "admins manage posts" on public.posts;
+create policy "admins manage posts"
+on public.posts
+for update
+to authenticated
+using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
