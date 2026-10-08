@@ -10,6 +10,13 @@ export default function AuthGate({ children }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [dob, setDob] = useState('');
+  const [maritalStatus, setMaritalStatus] = useState('');
+  const [bloodGroup, setBloodGroup] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [occupation, setOccupation] = useState('');
+  const [education, setEducation] = useState('');
+  const [parentsName, setParentsName] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
@@ -56,6 +63,16 @@ export default function AuthGate({ children }) {
       setMessage('Password must be at least 8 characters.');
       return;
     }
+    if (mode === 'signup') {
+      if (!dob || !maritalStatus || !bloodGroup || !mobile.trim() || !occupation.trim() || !education || !parentsName.trim()) {
+        setMessage('Please complete all registration details.');
+        return;
+      }
+      if (!/^\d{10}$/.test(mobile.replace(/\D/g, ''))) {
+        setMessage('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+    }
     if (!supabase) {
       setMessage('Supabase is not configured.');
       return;
@@ -67,7 +84,16 @@ export default function AuthGate({ children }) {
         ? await supabase.auth.signUp({
             email: cleanEmail,
             password,
-            options: { data: { full_name: '' } }
+            options: { data: {
+              full_name: '',
+              date_of_birth: dob,
+              marital_status: maritalStatus,
+              blood_group: bloodGroup,
+              mobile_number: mobile.replace(/\D/g, ''),
+              occupation,
+              highest_education: education,
+              parents_name: parentsName
+            } }
           })
         : await supabase.auth.signInWithPassword({
             email: cleanEmail,
@@ -83,6 +109,13 @@ export default function AuthGate({ children }) {
         setMessage('Account created. Check your email, confirm your account, then sign in.');
         setMode('login');
         setPassword('');
+        setDob('');
+        setMaritalStatus('');
+        setBloodGroup('');
+        setMobile('');
+        setOccupation('');
+        setEducation('');
+        setParentsName('');
         return;
       }
 
@@ -191,6 +224,59 @@ export default function AuthGate({ children }) {
             <input value={password} onChange={e => setPassword(e.target.value)} style={styles.input} placeholder="Minimum 8 characters" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} />
           </label>
 
+          {mode === 'signup' && (
+            <div style={styles.signupDetails}>
+              <div style={styles.sectionTitle}>Personal details</div>
+
+              <label style={styles.label}>Date of birth
+                <input value={dob} onChange={e => setDob(e.target.value)} style={styles.input} type="date" max={new Date().toISOString().split('T')[0]} />
+              </label>
+
+              <label style={styles.label}>Marital status
+                <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} style={styles.input}>
+                  <option value="">Select marital status</option>
+                  <option>Single</option>
+                  <option>Married</option>
+                  <option>Divorced</option>
+                  <option>Widowed</option>
+                  <option>Prefer not to say</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>Blood group
+                <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} style={styles.input}>
+                  <option value="">Select blood group</option>
+                  {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(group => <option key={group}>{group}</option>)}
+                </select>
+              </label>
+
+              <label style={styles.label}>Mobile number
+                <input value={mobile} onChange={e => setMobile(e.target.value.replace(/\D/g, '').slice(0,10))} style={styles.input} placeholder="10-digit mobile number" type="tel" inputMode="numeric" autoComplete="tel" />
+              </label>
+
+              <label style={styles.label}>Occupation
+                <input value={occupation} onChange={e => setOccupation(e.target.value)} style={styles.input} placeholder="e.g. Business, Student, Professional" />
+              </label>
+
+              <label style={styles.label}>Highest education qualification
+                <select value={education} onChange={e => setEducation(e.target.value)} style={styles.input}>
+                  <option value="">Select qualification</option>
+                  <option>School</option>
+                  <option>PUC / 12th</option>
+                  <option>Diploma</option>
+                  <option>Undergraduate</option>
+                  <option>Postgraduate</option>
+                  <option>Doctorate</option>
+                  <option>Other</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>Parents' name
+                <input value={parentsName} onChange={e => setParentsName(e.target.value)} style={styles.input} placeholder="Parent / parents name" />
+              </label>
+            </div>
+          )}
+
           {message && <div style={styles.message}>{message}</div>}
 
           <button type="submit" disabled={busy} style={styles.primary}>
@@ -236,6 +322,8 @@ const styles = {
   loginTitle: { textAlign:'center', margin:'12px 0 6px', color:'#241b18', fontSize:24 },
   loginSub: { textAlign:'center', color:'#766b65', fontSize:12, lineHeight:1.5, margin:'0 0 18px' },
   form: { display:'grid', gap:14 },
+  signupDetails: { display:'grid', gap:12, paddingTop:4 },
+  sectionTitle: { color:'#7c1d25', fontSize:12, fontWeight:800, letterSpacing:'.04em', paddingBottom:2 },
   label: { display:'grid', gap:7, fontSize:11, fontWeight:700, color:'#241b18' },
   input: { width:'100%', height:50, boxSizing:'border-box', border:'1px solid #ded1c3', borderRadius:13, padding:'0 14px', fontSize:14, background:'#fff' },
   link: { display:'block', width:'100%', border:0, background:'none', color:'#7c1d25', fontSize:11, cursor:'pointer', padding:'14px 8px' },
