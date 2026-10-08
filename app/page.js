@@ -314,11 +314,37 @@ export default function Home() {
       parents_name: profileForm.parents_name.trim() || null,
       updated_at: new Date().toISOString()
     };
-    const { error } = await supabase.from('profiles').update(payload).eq('id', currentUserId);
+    const { data: savedProfile, error } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('id', currentUserId)
+      .select('id, full_name, phone, date_of_birth, marital_status, blood_group, mobile_number, occupation, highest_education, parents_name')
+      .maybeSingle();
+
     setProfileBusy(false);
-    if (error) return setToast(error.message || 'Could not update profile');
-    setUserName(payload.full_name);
-    setProfileForm(prev => ({...prev, phone:mobile, mobile_number:mobile}));
+
+    if (error) {
+      setToast(error.message || 'Could not update profile');
+      return;
+    }
+
+    if (!savedProfile) {
+      setToast('Your profile could not be found. Please sign out and sign in again.');
+      return;
+    }
+
+    setUserName(savedProfile.full_name || payload.full_name);
+    setProfileForm({
+      full_name: savedProfile.full_name || '',
+      phone: savedProfile.phone || '',
+      date_of_birth: savedProfile.date_of_birth || '',
+      marital_status: savedProfile.marital_status || '',
+      blood_group: savedProfile.blood_group || '',
+      mobile_number: savedProfile.mobile_number || savedProfile.phone || '',
+      occupation: savedProfile.occupation || '',
+      highest_education: savedProfile.highest_education || '',
+      parents_name: savedProfile.parents_name || ''
+    });
     setShowEditProfile(false);
     setToast('Profile updated successfully');
   }
