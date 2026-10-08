@@ -87,7 +87,7 @@ create policy "users unlike posts" on public.post_likes
 for delete to authenticated
 using ((select auth.uid()) = user_id);
 
--- Only verified community members may create posts and comments.
+-- Only verified community members can publish posts.
 drop policy if exists "users create posts" on public.posts;
 create policy "users create posts" on public.posts
 for insert to authenticated
@@ -116,16 +116,6 @@ create policy "post comments are readable" on public.post_comments
 for select to authenticated
 using (true);
 
-drop policy if exists "users create post comments" on public.post_comments;
-create policy "users create post comments" on public.post_comments
-for insert to authenticated
-with check (
-  (select auth.uid()) = user_id
-  and exists (
-    select 1 from public.profiles p
-    where p.id = (select auth.uid()) and p.is_verified = true
-  )
-);
 create policy "users create post comments" on public.post_comments
 for insert to authenticated
 with check ((select auth.uid()) = user_id);
