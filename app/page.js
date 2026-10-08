@@ -295,7 +295,7 @@ export default function Home() {
     setNeedsProfile(!profile?.full_name);
   }
 
-  async function saveProfile(e) {
+  async function saveEditableProfile(e) {
     e.preventDefault();
     if (!supabase || !currentUserId) return;
     const mobile = (profileForm.mobile_number || '').replace(/\D/g, '');
@@ -686,7 +686,7 @@ export default function Home() {
     setAuthFeedback('Password reset email sent. Check your inbox.');
   }
 
-  async function saveProfile(e) {
+  async function completeProfileSetup(e) {
     e.preventDefault();
     const cleanName = userName.trim();
 
@@ -881,7 +881,7 @@ export default function Home() {
       setUserName={setUserName}
       profileLocality={profileLocality}
       setProfileLocality={setProfileLocality}
-      onSubmit={saveProfile}
+      onSubmit={completeProfileSetup}
       busy={profileBusy}
     />;
   }
@@ -940,7 +940,7 @@ export default function Home() {
       <button className="fab" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋</button>
       <nav className="bottom-nav">{nav.map(([id, icon, label]) => <button key={id} className={active === id ? 'selected' : ''} onClick={() => setActive(id)}><span>{icon}</span><small>{label}</small></button>)}</nav>
 
-      {showEditProfile && <Modal title="Edit profile" close={() => setShowEditProfile(false)}><form onSubmit={saveProfile} className="form">
+      {showEditProfile && <Modal title="Edit profile" close={() => setShowEditProfile(false)}><form onSubmit={saveEditableProfile} className="form">
         <label>Full name<input value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name:e.target.value})} required /></label>
         <label>Mobile number<input value={profileForm.mobile_number} onChange={e => setProfileForm({...profileForm, mobile_number:e.target.value.replace(/\D/g,'').slice(0,10)})} type="tel" inputMode="numeric" /></label>
         <label>Date of birth<input value={profileForm.date_of_birth} onChange={e => setProfileForm({...profileForm, date_of_birth:e.target.value})} type="date" max={new Date().toISOString().split('T')[0]} /></label>
