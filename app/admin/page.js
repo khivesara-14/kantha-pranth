@@ -27,6 +27,12 @@ export default function AdminPage() {
   const [stats, setStats] = useState({ members: 0, posts: 0, businesses: 0, events: 0 });
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState('');
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberLocality, setMemberLocality] = useState('All');
+  const [localities, setLocalities] = useState([]);
+  const [selectedMember, setSelectedMember] = useState(null);
 
   useEffect(() => {
     if (!supabase) {
@@ -42,6 +48,7 @@ export default function AdminPage() {
       setSession(s || null);
       setAdmin(s?.user?.app_metadata?.role === 'admin');
       setChecking(false);
+      if (s?.user?.app_metadata?.role === 'admin') { loadStats(); loadMembers(); }
       if (s?.user?.app_metadata?.role === 'admin') loadStats();
     }).catch(() => {
       if (mounted) {
@@ -93,6 +100,7 @@ export default function AdminPage() {
     setSession(data.session);
     setAdmin(true);
     loadStats();
+    loadMembers();
   }
 
   async function loadStats() {
@@ -122,6 +130,36 @@ export default function AdminPage() {
     } finally {
       setStatsLoading(false);
     }
+  }
+
+  async function loadMembers() {
+    if (!supabase) return;
+    setMembersLoading(true);
+    const [{ data: profileRows, error: profileError }, { data: localityRows, error: localityError }] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, phone, locality_id, avatar_url, bio, is_verified, created_at').order('created_at', { ascending: false }),
+      supabase.from('localities').select('id, name').order('name')
+    ]);
+    if (profileError) {
+      setStatsError(profileError.message || 'Could not load members.');
+      setMembers([]);
+    } else {
+      const map = new Map((localityRows || []).map(x => [x.id, x.name]));
+      setMembers((profileRows || []).map(x => ({ ...x, locality_name: map.get(x.locality_id) || 'Not set' })));
+    }
+    if (!localityError) setLocalities(localityRows || []);
+    setMembersLoading(false);
+  }
+
+  async function toggleVerification(member) {
+    if (!supabase) return;
+    const next = !member.is_verified;
+    const { error: updateError } = await supabase.from('profiles').update({ is_verified: next }).eq('id', member.id);
+    if (updateError) {
+      setStatsError(updateError.message || 'Could not update verification.');
+      return;
+    }
+    setMembers(prev => prev.map(x => x.id === member.id ? { ...x, is_verified: next } : x));
+    setSelectedMember(prev => prev?.id === member.id ? { ...prev, is_verified: next } : prev);
   }
 
   async function logout() {
@@ -208,6 +246,51 @@ export default function AdminPage() {
               <div style={styles.panel}><h3>System status</h3><div style={styles.status}><span>●</span> Authentication connected</div><div style={styles.status}><span>●</span> Admin authorization enabled</div><div style={styles.status}><span>●</span> Community app connected</div></div>
             </div>
           </>
+        ) : active === 'Members' ? (
+          <div>
+            <div style={styles.memberToolbar}>
+              <input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Search by name or phone…" style={styles.searchInput} />
+              <select value={memberLocality} onChange={e => setMemberLocality(e.target.value)} style={styles.select}>
+                <option>All</option>
+                {localities.map(x => <option key={x.id}>{x.name}</option>)}
+              </select>
+              <button onClick={loadMembers} style={styles.refresh}>↻ Refresh</button>
+            </div>
+            {statsError && <div style={styles.errorBanner}>{statsError}</div>}
+            <div style={styles.memberList}>
+              {membersLoading ? <div style={styles.empty}>Loading members…</div> :
+                members.filter(m => {
+                  const q = memberSearch.trim().toLowerCase();
+                  return (!q || (m.full_name || '').toLowerCase().includes(q) || (m.phone || '').includes(q)) &&
+                    (memberLocality === 'All' || m.locality_name === memberLocality);
+                }).map(m => (
+                  <button key={m.id} onClick={() => setSelectedMember(m)} style={styles.memberRow}>
+                    <span style={styles.memberAvatar}>{(m.full_name || '?').charAt(0).toUpperCase()}</span>
+                    <span style={styles.memberInfo}><b>{m.full_name || 'Unnamed member'}</b><small>{m.locality_name} · {m.phone || 'No phone'}</small></span>
+                    <span style={{...styles.verifyPill, ...(m.is_verified ? styles.verified : {})}}>{m.is_verified ? '✓ Verified' : 'Unverified'}</span>
+                    <span style={styles.chevron}>›</span>
+                  </button>
+                ))}
+              {!membersLoading && members.length === 0 && <div style={styles.empty}>No member profiles found.</div>}
+            </div>
+            {selectedMember && (
+              <div style={styles.modalBackdrop} onClick={() => setSelectedMember(null)}>
+                <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                  <button style={styles.modalClose} onClick={() => setSelectedMember(null)}>×</button>
+                  <div style={styles.detailAvatar}>{(selectedMember.full_name || '?').charAt(0).toUpperCase()}</div>
+                  <h2>{selectedMember.full_name || 'Unnamed member'}</h2>
+                  <p style={styles.detailMuted}>{selectedMember.locality_name}</p>
+                  <div style={styles.detailGrid}>
+                    <div><small>Phone</small><b>{selectedMember.phone || 'Not provided'}</b></div>
+                    <div><small>Status</small><b>{selectedMember.is_verified ? 'Verified' : 'Unverified'}</b></div>
+                    <div><small>Joined</small><b>{new Date(selectedMember.created_at).toLocaleDateString()}</b></div>
+                    <div><small>Bio</small><b>{selectedMember.bio || 'No bio added'}</b></div>
+                  </div>
+                  <button onClick={() => toggleVerification(selectedMember)} style={styles.verifyButton}>{selectedMember.is_verified ? 'Remove verification' : 'Verify member'}</button>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <div style={styles.coming}><div>◈</div><h2>{active}</h2><p>This management module is ready to be connected to the live Supabase data next.</p></div>
         )}
@@ -268,6 +351,30 @@ const styles = {
   action:{display:'flex',justifyContent:'space-between',border:'1px solid #eee3da',background:'#faf6f1',borderRadius:10,padding:'12px',textAlign:'left',fontSize:11,cursor:'pointer',color:'#3b2d28'},
   status:{padding:'11px 0',borderBottom:'1px solid #eee5dc',fontSize:11,color:'#5f534d'},
   'status span':{color:'#3b8a56',marginRight:8},
+  memberToolbar:{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'},
+  searchInput:{flex:'1 1 280px',minWidth:220,height:44,border:'1px solid #ded1c3',borderRadius:12,padding:'0 13px',fontSize:12,background:'#fffdf9'},
+  select:{height:44,border:'1px solid #ded1c3',borderRadius:12,padding:'0 12px',fontSize:12,background:'#fffdf9'},
+  refresh:{height:44,border:0,borderRadius:12,padding:'0 14px',background:'#7c1d25',color:'#fff',fontWeight:800,cursor:'pointer'},
+  memberList:{display:'grid',gap:8},
+  memberRow:{width:'100%',display:'flex',alignItems:'center',gap:12,border:'1px solid #e7ddd3',background:'#fffdf9',borderRadius:15,padding:12,textAlign:'left',cursor:'pointer'},
+  memberAvatar:{width:42,height:42,borderRadius:14,display:'grid',placeItems:'center',background:'#ead7b7',color:'#7c1d25',fontWeight:900,flexShrink:0},
+  memberInfo:{flex:1,minWidth:0}, 
+  memberInfo b:{display:'block',fontSize:12,color:'#281b18'},
+  memberInfo small:{display:'block',fontSize:10,color:'#8b7d75',marginTop:4},
+  verifyPill:{fontSize:9,padding:'5px 8px',borderRadius:8,background:'#f1ebe5',color:'#776b63',whiteSpace:'nowrap'},
+  verified:{background:'#e7f4ea',color:'#28733f'},
+  chevron:{fontSize:20,color:'#a09289'},
+  empty:{padding:50,textAlign:'center',color:'#8b7d75',background:'#fffdf9',border:'1px solid #e7ddd3',borderRadius:18},
+  modalBackdrop:{position:'fixed',inset:0,background:'rgba(30,20,15,.45)',display:'grid',placeItems:'center',padding:20,zIndex:50},
+  modal:{position:'relative',width:'100%',maxWidth:480,background:'#fffdf9',borderRadius:22,padding:28,boxSizing:'border-box',boxShadow:'0 20px 80px rgba(0,0,0,.25)'},
+  modalClose:{position:'absolute',right:16,top:12,border:0,background:'transparent',fontSize:26,color:'#766b65',cursor:'pointer'},
+  detailAvatar:{width:62,height:62,borderRadius:20,display:'grid',placeItems:'center',background:'#7c1d25',color:'#fff',fontSize:24,fontWeight:900},
+  detailMuted:{fontSize:11,color:'#8b7d75'},
+  detailGrid:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,margin:'20px 0'},
+  detailGrid div:{background:'#f8f4ed',borderRadius:12,padding:12},
+  detailGrid small:{display:'block',fontSize:9,color:'#8b7d75',marginBottom:5},
+  detailGrid b:{display:'block',fontSize:11,color:'#332522',lineHeight:1.4},
+  verifyButton:{width:'100%',height:46,border:0,borderRadius:12,background:'#7c1d25',color:'#fff',fontWeight:800,cursor:'pointer'},
   coming:{background:'#fffdf9',border:'1px solid #e7ddd3',borderRadius:22,padding:50,textAlign:'center',minHeight:300},
   'coming h2':{color:'#7c1d25'},
   'coming p':{fontSize:12,color:'#766b65'}
