@@ -278,6 +278,9 @@ export default function AuthGate({ children }) {
           {!resetMode && <label style={styles.label}>Password
             <input value={password} onChange={e => setPassword(e.target.value)} style={styles.input} placeholder="Minimum 8 characters" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} />
           </label>}
+          {!resetMode && mode === 'login' && <div style={{ display:'flex', justifyContent:'flex-end', marginTop:-7, marginBottom:4 }}>
+            <button type="button" disabled={busy} onClick={() => { setMessage(''); setEmailConfirmationRequired(false); setResetMode(true); }} style={{ border:0, background:'transparent', color:'#7c1d25', fontSize:13, fontWeight:800, textDecoration:'underline', cursor:'pointer', padding:'6px 0' }}>Forgot password?</button>
+          </div>}
 
           {!resetMode && mode === 'signup' && (
             <div style={styles.signupDetails}>
@@ -340,7 +343,6 @@ export default function AuthGate({ children }) {
           </button>
         </form>
 
-        {!resetMode && mode === 'login' && <button type="button" disabled={busy} onClick={() => { setMessage(''); setEmailConfirmationRequired(false); setResetMode(true); }} style={styles.link}>Forgot password?</button>}
         {resetMode ? <button type="button" disabled={busy} onClick={() => { setMessage(''); setResetMode(false); }} style={styles.link}>Back to sign in</button> : <button type="button" disabled={busy} onClick={() => { setMessage(''); setEmailConfirmationRequired(false); setMode(mode === 'login' ? 'signup' : 'login'); }} style={styles.link}>
           {mode === 'login' ? 'New to Kantha Pranth? Create an account' : 'Already have an account? Sign in'}
         </button>}
