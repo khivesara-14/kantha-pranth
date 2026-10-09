@@ -64,6 +64,10 @@ export default function Home() {
   const [messageDraft, setMessageDraft] = useState('');
   const [messageBusy, setMessageBusy] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [showMessageMemberPicker, setShowMessageMemberPicker] = useState(false);
+  const [messageMembers, setMessageMembers] = useState([]);
+  const [messageMemberSearch, setMessageMemberSearch] = useState('');
+  const [messageMembersLoading, setMessageMembersLoading] = useState(false);
   const [helpRequests, setHelpRequests] = useState([]);
   const [showHelpForm, setShowHelpForm] = useState(false);
   const [helpCategory, setHelpCategory] = useState('Support request');
@@ -549,6 +553,30 @@ export default function Home() {
     if (unreadIds.length) {
       await supabase.from('messages').update({ read_at: new Date().toISOString() }).in('id', unreadIds);
     }
+  }
+
+  async function openMessageMemberPicker() {
+    if (!supabase || !authenticated || guestMode || !currentUserId) {
+      setShowLogin(true);
+      setToast('Sign in with your account to message community members');
+      return;
+    }
+    setShowMessageMemberPicker(true);
+    setMessageMemberSearch('');
+    setMessageMembersLoading(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url, is_verified, locality_id')
+      .neq('id', currentUserId)
+      .order('full_name', { ascending: true })
+      .limit(200);
+    setMessageMembersLoading(false);
+    if (error) {
+      setMessageMembers([]);
+      setToast(error.message || 'Could not load community members');
+      return;
+    }
+    setMessageMembers(data || []);
   }
 
   async function startConversationWith(otherUserId) {
@@ -1534,7 +1562,18 @@ export default function Home() {
           {(!authenticated || guestMode || !supabase) ? <div className="info-banner"><b>Sign in required</b><p>Sign in to see your saved community posts.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in</button></div> : savedPosts.length ? savedPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="empty-state"><div>🔖</div><h3>No saved posts yet</h3><p>Use Save on a community post to keep it here for later.</p><button className="primary" onClick={() => setActive('community')}>Explore community</button></div>}
         </Page>}
 
-        {active === 'messages' && <Page title="Messages" subtitle="Private conversations with community members" action={activeConversation ? <button className="soft-btn" onClick={() => { setActiveConversation(null); setThreadMessages([]); }}>← Inbox</button> : null}>
+        {active === 'messages' && <Page title="Messages" subtitle="Private conversations with community members" action={activeConversation ? <button className="soft-btn" onClick={() => { setActiveConversation(null); setThreadMessages([]); }}>← Inbox</button> : <button className="primary small" onClick={openMessageMemberPicker}>＋ New message</button>}>
+          {showMessageMemberPicker && !activeConversation && authenticated && !guestMode && supabase && <div style={{ marginBottom:14, padding:14, border:'1px solid #eadfd3', borderRadius:16, background:'#fffdf9' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, marginBottom:10 }}>
+              <div><b>Start a conversation</b><small style={{ display:'block', color:'#8c8179', marginTop:3 }}>Choose a community member to message privately.</small></div>
+              <button type="button" className="soft-btn" onClick={() => setShowMessageMemberPicker(false)}>Close</button>
+            </div>
+            <input value={messageMemberSearch} onChange={e => setMessageMemberSearch(e.target.value)} placeholder="Search members by name…" style={{ width:'100%', marginBottom:10 }} />
+            {messageMembersLoading ? <div className="info-banner">Loading community members…</div> : (() => {
+              const matchingMembers = messageMembers.filter(member => (member.full_name || 'Community Member').toLowerCase().includes(messageMemberSearch.trim().toLowerCase()));
+              return matchingMembers.length ? <div style={{ display:'grid', gap:7, maxHeight:300, overflowY:'auto' }}>{matchingMembers.map(member => <button type="button" key={member.id} onClick={() => { setShowMessageMemberPicker(false); startConversationWith(member.id); }} style={{ display:'flex', alignItems:'center', gap:10, textAlign:'left', padding:10, border:'1px solid #eadfd3', borderRadius:12, background:'#fff', cursor:'pointer' }}><Avatar initials={initialsFromName(member.full_name || 'Community Member')} /><span style={{ flex:1 }}><b>{member.full_name || 'Community Member'}</b>{member.is_verified && <span className="verified"> ✓ Verified</span></span><span className="chevron">›</span></button>)}</div> : <div className="empty-state"><div>🔎</div><h3>No members found</h3><p>{messageMembers.length ? 'Try a different name.' : 'No other member profiles are available yet.'}</p></div>;
+            })()}
+          </div>}
           {(!authenticated || guestMode || !supabase) ? <div className="info-banner"><b>Private messaging</b><p>Sign in with a registered account to start and receive private messages.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in</button></div> : activeConversation ? <div style={{ display:'grid', gap:12 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:14 }}><Avatar initials={initialsFromName(activeConversation.otherName)} /><div style={{ flex:1 }}><b>{activeConversation.otherName}</b>{activeConversation.otherVerified && <span className="verified"> ✓ Verified</span>}<small style={{ display:'block', color:'#8c8179', marginTop:3 }}>Private one-to-one conversation</small></div></div>
             <div style={{ display:'flex', flexDirection:'column', gap:8, minHeight:260, maxHeight:'52vh', overflowY:'auto', padding:10, background:'#f8f3ed', borderRadius:14 }}>
