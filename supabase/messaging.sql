@@ -104,8 +104,7 @@ begin
   end if;
   return new;
 end;
-$;
-
+$$;
 drop trigger if exists messages_protect_content on public.messages;
 create trigger messages_protect_content
 before update on public.messages
