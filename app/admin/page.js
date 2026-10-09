@@ -35,6 +35,9 @@ export default function AdminPage() {
   const [selectedPostLikes, setSelectedPostLikes] = useState(0);
   const [reports, setReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [businesses, setBusinesses] = useState([]);
+  const [businessesLoading, setBusinessesLoading] = useState(false);
+  const [businessSearch, setBusinessSearch] = useState('');
 
   useEffect(() => {
     if (!supabase) {
@@ -54,6 +57,7 @@ export default function AdminPage() {
         loadMembers();
         loadPosts();
         loadReports();
+        loadBusinesses();
       }
     }).catch(() => {
       if (mounted) {
@@ -108,6 +112,46 @@ export default function AdminPage() {
     loadMembers();
     loadPosts();
     loadReports();
+    loadBusinesses();
+  }
+
+  async function loadBusinesses() {
+    if (!supabase) return;
+    setBusinessesLoading(true);
+    const { data: rows, error } = await supabase.from('businesses')
+      .select('id, owner_id, name, category, description, locality_id, phone, website, verified, created_at')
+      .order('created_at', { ascending: false });
+    if (error) {
+      setStatsError(error.message || 'Could not load businesses.');
+      setBusinesses([]);
+      setBusinessesLoading(false);
+      return;
+    }
+    const list = rows || [];
+    const ownerIds = [...new Set(list.map(x => x.owner_id).filter(Boolean))];
+    const localityIds = [...new Set(list.map(x => x.locality_id).filter(Boolean))];
+    const [{ data: profiles }, { data: localityRows }] = await Promise.all([
+      ownerIds.length ? supabase.from('profiles').select('id, full_name').in('id', ownerIds) : Promise.resolve({ data: [] }),
+      localityIds.length ? supabase.from('localities').select('id, name').in('id', localityIds) : Promise.resolve({ data: [] })
+    ]);
+    const profileMap = new Map((profiles || []).map(x => [x.id, x.full_name || 'Community Member']));
+    const localityMap = new Map((localityRows || []).map(x => [x.id, x.name]));
+    setBusinesses(list.map(x => ({ ...x, owner_name: profileMap.get(x.owner_id) || 'Community Member', locality_name: localityMap.get(x.locality_id) || 'Bengaluru' })));
+    setBusinessesLoading(false);
+  }
+
+  async function toggleBusinessVerification(business) {
+    if (!supabase) return;
+    const { error } = await supabase.from('businesses').update({ verified: !business.verified }).eq('id', business.id);
+    if (error) return setStatsError(error.message || 'Could not update business verification.');
+    setBusinesses(rows => rows.map(x => x.id === business.id ? { ...x, verified: !business.verified } : x));
+  }
+
+  async function removeBusiness(business) {
+    if (!supabase || !window.confirm(`Remove "${business.name}" from the community directory?`)) return;
+    const { error } = await supabase.from('businesses').delete().eq('id', business.id);
+    if (error) return setStatsError(error.message || 'Could not remove business.');
+    setBusinesses(rows => rows.filter(x => x.id !== business.id));
   }
 
   async function loadReports() {
@@ -727,7 +771,15 @@ export default function AdminPage() {
         )}
 
 
-        {active === 'Reports' && (
+        {active === 'Businesses' && (
+        <section style={styles.panel}>
+          <div style={styles.sectionHead}><div><h2 style={styles.sectionTitle}>Business directory</h2><p style={styles.muted}>Review local business submissions and manage verification badges.</p></div><button onClick={loadBusinesses} style={styles.refresh}>↻ Refresh</button></div>
+          <input value={businessSearch} onChange={e => setBusinessSearch(e.target.value)} placeholder="Search business, category, locality, or owner…" style={styles.searchInput} />
+          {businessesLoading ? <p style={styles.muted}>Loading businesses…</p> : businesses.filter(b => `${b.name} ${b.category} ${b.locality_name} ${b.owner_name}`.toLowerCase().includes(businessSearch.toLowerCase())).length ? <div style={{ display:'grid', gap:10, marginTop:14 }}>{businesses.filter(b => `${b.name} ${b.category} ${b.locality_name} ${b.owner_name}`.toLowerCase().includes(businessSearch.toLowerCase())).map(b => <article key={b.id} style={{ border:'1px solid #eadfd3', borderRadius:14, padding:14, display:'grid', gap:8 }}><div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}><div><h3 style={{ margin:'0 0 4px' }}>{b.name}</h3><p style={{ margin:0, color:'#81736b', fontSize:12 }}>{b.category} · {b.locality_name}</p></div><span style={{ fontSize:11, fontWeight:800, color:b.verified ? '#246b45' : '#8b5b16' }}>{b.verified ? '✓ Verified' : 'Pending verification'}</span></div>{b.description && <p style={{ margin:0, fontSize:13 }}>{b.description}</p>}<small style={{ color:'#81736b' }}>Owner: {b.owner_name}{b.phone ? ` · ${b.phone}` : ''}{b.website ? ` · ${b.website}` : ''}</small><div style={{ display:'flex', gap:8, flexWrap:'wrap' }}><button onClick={() => toggleBusinessVerification(b)} style={styles.primaryButton}>{b.verified ? 'Remove verification' : '✓ Verify business'}</button><button onClick={() => removeBusiness(b)} style={styles.dangerButton}>Remove listing</button></div></article>)}</div> : <div style={styles.empty}><h3>No businesses found</h3><p>New community business submissions will appear here.</p></div>}
+        </section>
+      )}
+
+      {active === 'Reports' && (
           <div>
             <div style={styles.memberToolbar}>
               <button onClick={loadReports} style={styles.refresh}>↻ Refresh reports</button>
@@ -752,7 +804,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {!['Dashboard', 'Members', 'Posts', 'Reports'].includes(active) && (
+        {!['Dashboard', 'Members', 'Posts', 'Reports', 'Businesses'].includes(active) && (
           <div style={styles.coming}>
             <div style={styles.comingIcon}>◈</div>
             <h2 style={styles.comingTitle}>{active}</h2>
