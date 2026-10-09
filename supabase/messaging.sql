@@ -91,7 +91,7 @@ create or replace function public.protect_message_content()
 returns trigger
 language plpgsql
 set search_path = public
-as $
+as $$
 begin
   if new.conversation_id is distinct from old.conversation_id
      or new.sender_id is distinct from old.sender_id
