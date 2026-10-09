@@ -105,7 +105,7 @@ export default function AuthGate({ children }) {
       if (result.error) {
         if (mode === 'login' && /email not confirmed/i.test(result.error.message || '')) {
           setEmailConfirmationRequired(true);
-          setMessage('Please confirm your email address before signing in. Check your inbox and spam folder, or resend the confirmation email below.');
+          setMessage('Your email is not authenticated yet. Please authenticate your email using the confirmation link sent to your inbox before signing in. Check spam, or resend the confirmation email below.');
         } else {
           setMessage(result.error.message || 'Authentication failed.');
         }
@@ -113,7 +113,7 @@ export default function AuthGate({ children }) {
       }
 
       if (mode === 'signup' && !result.data?.session) {
-        setMessage('Account created. Check your email, confirm your account, then sign in.');
+        setMessage('Registration successful! Please authenticate your email by opening the confirmation link sent to your email address. Then return here and sign in.');
         setMode('login');
         setPassword('');
         setDob('');
@@ -148,7 +148,7 @@ export default function AuthGate({ children }) {
       if (error) setMessage(error.message || 'Could not resend confirmation email.');
       else {
         setEmailConfirmationRequired(false);
-        setMessage('Confirmation email sent. Open the email and click the confirmation link, then return here to sign in.');
+        setMessage('Authentication email sent. Open it and click the confirmation link to authenticate your email, then return here to sign in.');
       }
     } catch (error) {
       setMessage(error?.message || 'Could not resend confirmation email.');
