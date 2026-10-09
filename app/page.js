@@ -119,15 +119,25 @@ export default function Home() {
         setAuthChecked(true);
       });
 
-      const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
         setAuthenticated(!!session);
         setCurrentUserId(session?.user?.id || '');
         setGuestMode(false);
         if (session) {
-          await loadUserProfile(session);
-          await loadPosts();
-          await loadFamilies();
-          await loadNotifications(session.user.id);
+          // Defer Supabase queries until after the auth callback returns.
+          // Awaiting Supabase queries inside onAuthStateChange can deadlock auth state updates.
+          Promise.resolve().then(async () => {
+            await loadUserProfile(session);
+            await loadPosts();
+            await loadFamilies();
+            await loadNotifications(session.user.id);
+          }).catch(error => {
+            console.error('Could not load authenticated community data:', error);
+            setToast('Signed in, but some community data could not be loaded. Please refresh.');
+          });
+        } else {
+          setNeedsProfile(false);
+          setNotifications([]);
         }
       });
       unsubscribe = () => listener?.subscription?.unsubscribe?.();
