@@ -64,6 +64,10 @@ export default function Home() {
   const [messageDraft, setMessageDraft] = useState('');
   const [messageBusy, setMessageBusy] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [helpRequests, setHelpRequests] = useState([]);
+  const [showHelpForm, setShowHelpForm] = useState(false);
+  const [helpCategory, setHelpCategory] = useState('Support request');
+  const [helpBusy, setHelpBusy] = useState(false);
   const [listings, setListings] = useState(initialListings);
   const [listingBusy, setListingBusy] = useState(false);
   const [showPost, setShowPost] = useState(false);
@@ -179,6 +183,83 @@ export default function Home() {
     }
     setSelectedMember({ ...profile, localityName });
     setMemberPosts((postRows || []).map(p => ({ ...p, author_id:userId, author:profile.full_name || 'Community Member', area:localityName, time:formatPostTime(p.created_at), text:p.body, avatar:initialsFromName(profile.full_name || 'Community Member'), image_url:p.image_url || '' })));
+  }
+
+  async function loadHelpRequests() {
+    if (!supabase || !authenticated || guestMode) {
+      setHelpRequests([]);
+      return;
+    }
+    const { data: rows, error } = await supabase
+      .from('help_requests')
+      .select('id, created_by, locality_id, category, title, description, status, created_at')
+      .neq('status', 'moderated')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) {
+      console.error('Could not load community help requests:', error.message);
+      return;
+    }
+    const list = rows || [];
+    if (!list.length) {
+      setHelpRequests([]);
+      return;
+    }
+    const localityIds = [...new Set(list.map(x => x.locality_id).filter(Boolean))];
+    const userIds = [...new Set(list.map(x => x.created_by).filter(Boolean))];
+    const [{ data: localitiesRows }, { data: profilesRows }] = await Promise.all([
+      localityIds.length ? supabase.from('localities').select('id, name').in('id', localityIds) : Promise.resolve({ data: [] }),
+      userIds.length ? supabase.from('profiles').select('id, full_name, is_verified').in('id', userIds) : Promise.resolve({ data: [] })
+    ]);
+    const localityMap = new Map((localitiesRows || []).map(x => [x.id, x.name]));
+    const profileMap = new Map((profilesRows || []).map(x => [x.id, x]));
+    setHelpRequests(list.map(item => ({
+      ...item,
+      localityName: localityMap.get(item.locality_id) || 'Bengaluru',
+      authorName: profileMap.get(item.created_by)?.full_name || 'Community Member',
+      authorVerified: !!profileMap.get(item.created_by)?.is_verified
+    })));
+  }
+
+  async function submitHelpRequest(e) {
+    e.preventDefault();
+    if (!supabase || !authenticated || guestMode || !currentUserId) {
+      setShowHelpForm(false);
+      setShowLogin(true);
+      return setToast('Sign in to create a community help request');
+    }
+    const fd = new FormData(e.currentTarget);
+    const title = fd.get('title')?.toString().trim() || '';
+    const description = fd.get('description')?.toString().trim() || '';
+    const category = fd.get('category')?.toString() || helpCategory;
+    if (title.length < 4) return setToast('Give your request a clear title');
+    if (description.length < 10) return setToast('Please add a little more detail');
+    setHelpBusy(true);
+    try {
+      const { data: localityRow, error: localityError } = await supabase.from('localities').select('id').eq('name', locality).maybeSingle();
+      if (localityError || !localityRow) return setToast('Could not find your locality');
+      const { error } = await supabase.from('help_requests').insert({
+        created_by: currentUserId,
+        locality_id: localityRow.id,
+        category,
+        title,
+        description
+      });
+      if (error) return setToast(error.message || 'Could not publish your help request');
+      setShowHelpForm(false);
+      await loadHelpRequests();
+      setToast('Your help request is now visible to signed-in community members');
+    } finally {
+      setHelpBusy(false);
+    }
+  }
+
+  async function resolveHelpRequest(requestId) {
+    if (!supabase || !currentUserId) return;
+    const { error } = await supabase.from('help_requests').update({ status: 'resolved', updated_at: new Date().toISOString() }).eq('id', requestId).eq('created_by', currentUserId);
+    if (error) return setToast(error.message || 'Could not update this request');
+    setHelpRequests(rows => rows.map(row => row.id === requestId ? { ...row, status: 'resolved' } : row));
+    setToast('Request marked as resolved');
   }
 
   async function loadConversations() {
@@ -312,6 +393,10 @@ export default function Home() {
   }
 
   const unreadNotifications = notifications.filter(x => !x.read_at).length;
+
+  useEffect(() => {
+    if (active === 'help' && authenticated && !guestMode) loadHelpRequests();
+  }, [active, authenticated, guestMode, currentUserId]);
 
   useEffect(() => {
     if (active === 'messages' && authenticated && !guestMode) loadConversations();
@@ -1184,7 +1269,11 @@ export default function Home() {
           </div> : conversations.length ? <div style={{ display:'grid', gap:8 }}>{conversations.map(conv => <button key={conv.id} type="button" onClick={async () => { setActiveConversation(conv); await loadThreadMessages(conv.id); }} style={{ display:'flex', gap:11, alignItems:'center', textAlign:'left', padding:12, border:'1px solid #eadfd3', borderRadius:14, background:'#fffdf9', cursor:'pointer' }}><Avatar initials={initialsFromName(conv.otherName)} /><div style={{ flex:1, minWidth:0 }}><div style={{ display:'flex', justifyContent:'space-between', gap:8 }}><b>{conv.otherName}{conv.otherVerified ? ' ✓' : ''}</b><small style={{ color:'#8c8179', flexShrink:0 }}>{formatPostTime(conv.latestMessage?.created_at || conv.updated_at)}</small></div><p style={{ margin:'5px 0 0', color:'#8c8179', fontSize:12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{conv.latestMessage ? `${conv.latestMessage.sender_id === currentUserId ? 'You: ' : ''}${conv.latestMessage.body}` : 'Start a conversation'}</p></div><span className="chevron">›</span></button>)}</div> : <div className="empty-state"><div>✉️</div><h3>Your inbox is ready</h3><p>Start a private conversation from a member profile or a marketplace listing.</p></div>}
         </Page>}
 
-        {active === 'help' && <Page title="Community Help" subtitle="Support one another"><div className="help-grid">{[['🩸','Blood requirement'],['🔎','Lost & found'],['🤝','Volunteer'],['❤️','Support request']].map(([i,x]) => <button key={x} className="help-card" onClick={() => setToast('Help request flow coming next') }><span>{i}</span><b>{x}</b><small>Post to your local community</small></button>)}</div><div className="info-banner"><b>Safety first</b><p>Important help requests will be moderated. Never share sensitive personal or financial information publicly.</p></div></Page>}
+        {active === 'help' && <Page title="Community Help" subtitle="Ask for help, offer support, and connect locally" action={<button className="primary small" onClick={() => { if (!authenticated || guestMode || !supabase) { setShowLogin(true); setToast('Sign in to post a help request'); } else { setHelpCategory('Support request'); setShowHelpForm(true); } }}>＋ Ask for help</button>}>
+          <div className="help-grid">{[['🩸','Blood requirement'],['🔎','Lost & found'],['🤝','Volunteer'],['❤️','Support request']].map(([emoji,label]) => <button key={label} className="help-card" onClick={() => { if (!authenticated || guestMode || !supabase) { setShowLogin(true); setToast('Sign in to post a help request'); } else { setHelpCategory(label); setShowHelpForm(true); } }}><span>{emoji}</span><b>{label}</b><small>Post to your local community</small></button>)}</div>
+          <div className="info-banner"><b>Safety and privacy</b><p>Requests are visible to signed-in members. Do not publish phone numbers, OTPs, bank details, or other sensitive information in a public request.</p></div>
+          {(!authenticated || guestMode || !supabase) ? <div className="info-banner"><b>Sign in to access community requests</b><p>The help board is for registered community members.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in</button></div> : helpRequests.length ? <div style={{ display:'grid', gap:10, marginTop:14 }}>{helpRequests.map(item => <article key={item.id} style={{ background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:15, padding:14 }}><div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap' }}><Pill tone={item.status === 'resolved' ? 'active' : item.category === 'Blood requirement' ? 'help' : ''}>{item.status === 'resolved' ? 'Resolved' : item.category}</Pill><small style={{ color:'#8c8179' }}>{formatPostTime(item.created_at)}</small></div><h3 style={{ margin:'10px 0 5px' }}>{item.title}</h3><p style={{ margin:'0 0 10px', fontSize:13, whiteSpace:'pre-wrap' }}>{item.description}</p><small style={{ color:'#8c8179' }}>⌖ {item.localityName} · {item.authorName}{item.authorVerified ? ' ✓ Verified' : ''}</small>{item.created_by === currentUserId && item.status === 'open' && <button className="soft-btn" style={{ display:'block', marginTop:10 }} onClick={() => resolveHelpRequest(item.id)}>Mark resolved</button>}</article>)}</div> : <div className="empty-state"><div>🤝</div><h3>No requests yet</h3><p>Be the first to ask for help or offer support in your locality.</p><button className="primary" onClick={() => { setHelpCategory('Support request'); setShowHelpForm(true); }}>＋ Create a request</button></div>}
+        </Page>}
       </section>
 
       <button className="fab" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋</button>
@@ -1203,6 +1292,7 @@ export default function Home() {
       </form></Modal>}
 
       {showPost && <Modal title="Create a community post" close={() => { setShowPost(false); setPostPhotoPreview(''); }}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><label>Photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0]; setPostPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{postPhotoPreview && <img className="family-photo-preview" src={postPhotoPreview} alt="Post preview" />}<button className="primary full" disabled={postBusy || !isVerifiedUser}>{postBusy ? 'Publishing…' : !isVerifiedUser ? 'Verification required' : 'Publish post'}</button></form></Modal>}
+      {showHelpForm && <Modal title="Community help request" close={() => setShowHelpForm(false)}><form onSubmit={submitHelpRequest} className="form"><div className="info-banner"><b>Locality: {locality}</b><p>Your request will be visible to signed-in members. Keep personal and contact details private.</p></div><label>Request type<select name="category" value={helpCategory} onChange={e => setHelpCategory(e.target.value)}>{['Blood requirement','Lost & found','Volunteer','Support request','Other'].map(x => <option key={x}>{x}</option>)}</select></label><label>Title<input name="title" minLength={4} maxLength={120} placeholder="Briefly describe what you need" required /></label><label>Details<textarea name="description" rows={4} minLength={10} maxLength={2500} placeholder="Explain how the community can help. Avoid sharing sensitive personal information." required /></label><button className="primary full" disabled={helpBusy}>{helpBusy ? 'Publishing…' : 'Publish help request'}</button></form></Modal>}
       {showListing && <Modal title="Sell something" close={() => setShowListing(false)}><form onSubmit={addListing} className="form"><div className="info-banner"><b>Reach your local community</b><p>Your listing will be visible in the marketplace while it is active. Never include sensitive personal information in the description.</p></div><label>Product name<input name="title" placeholder="e.g. Study table" minLength={3} maxLength={100} required /></label><label>Price (₹)<input name="price" type="number" inputMode="decimal" min="1" max="999999999" step="0.01" placeholder="2500" required /></label><label>Category<select name="category"><option>Furniture</option><option>Electronics</option><option>Books</option><option>Vehicles</option><option>Property</option><option>Business</option><option>Other</option></select></label><label>Condition<select name="condition"><option>New</option><option>Like new</option><option>Good condition</option><option>Used</option><option>For parts / repair</option></select></label><label>Description <span className="optional">(optional)</span><textarea name="description" rows="3" maxLength={1500} placeholder="Describe the item, pickup details, and anything buyers should know." /></label><button className="primary full" disabled={listingBusy}>{listingBusy ? 'Publishing…' : 'Publish listing'}</button></form></Modal>}
       {showFamilyForm && <Modal title="Add your family" close={() => { setShowFamilyForm(false); setFamilyPhotoPreview(''); }}><form onSubmit={createFamily} className="form"><div className="info-banner"><b>Privacy first</b><p>All contact details are optional. They are shown only when you choose “Show contact details”.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" onChange={e => { const file=e.target.files?.[0]; setFamilyPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{familyPhotoPreview && <img className="family-photo-preview" src={familyPhotoPreview} alt="Family preview" />}<label>Family name <span className="optional">(optional)</span><input name="family_name" placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue="community"><option value="community">Community members</option><option value="private">Private — only me</option></select></label><label>Family members<small className="field-help">One member per line. Example: Rajesh Jain — Father</small><textarea name="members" rows="5" placeholder="Rajesh Jain — Father&#10;Sunita Jain — Mother&#10;Aarav Jain — Son"></textarea></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Add family to directory'}</button></form></Modal>}
       {showFamilyEdit && editingFamily && <Modal title="Edit family details" close={() => { setShowFamilyEdit(false); setEditingFamily(null); }}><form onSubmit={updateFamily} className="form"><div className="info-banner"><b>Update anytime</b><p>You can remove the family name, replace the photo, or change which contact details the community can see.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" /></label>{editingFamily.photo_url && <img className="family-photo-preview" src={editingFamily.photo_url} alt="Current family" />}<label className="check-row"><input name="remove_photo" type="checkbox" /> Remove current family photo</label><label>Family name <span className="optional">(optional)</span><input name="family_name" defaultValue={editingFamily.family_name || ''} placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" defaultChecked={!editingFamily.family_name} /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={editingFamily.localities?.name || locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" defaultValue={editingFamily.address || ''} placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" defaultValue={editingFamily.phone || ''} placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" defaultValue={editingFamily.email || ''} placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" defaultChecked={!!editingFamily.show_contact} /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue={editingFamily.visibility || 'community'}><option value="community">Community members</option><option value="private">Private — only me</option></select></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Save family details'}</button></form></Modal>}
