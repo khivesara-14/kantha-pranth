@@ -453,11 +453,13 @@ export default function Home() {
       return;
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, phone, date_of_birth, marital_status, blood_group, mobile_number, occupation, highest_education, parents_name, locality_id, is_verified')
-      .eq('id', user.id)
-      .maybeSingle();
+    const [{ data: profile }, { data: privateProfile, error: privateProfileError }] = await Promise.all([
+      supabase.from('profiles').select('full_name, locality_id, is_verified').eq('id', user.id).maybeSingle(),
+      supabase.from('profile_private').select('phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name').eq('id', user.id).maybeSingle()
+    ]);
+    if (privateProfileError) {
+      console.error('Could not load private profile details:', privateProfileError.message);
+    }
 
     if (profile?.full_name) {
       setUserName(profile.full_name);
@@ -466,14 +468,14 @@ export default function Home() {
     if (profile) {
       setProfileForm({
         full_name: profile.full_name || '',
-        phone: profile.phone || '',
-        date_of_birth: profile.date_of_birth || '',
-        marital_status: profile.marital_status || '',
-        blood_group: profile.blood_group || '',
-        mobile_number: profile.mobile_number || profile.phone || '',
-        occupation: profile.occupation || '',
-        highest_education: profile.highest_education || '',
-        parents_name: profile.parents_name || ''
+        phone: privateProfile?.phone || '',
+        date_of_birth: privateProfile?.date_of_birth || '',
+        marital_status: privateProfile?.marital_status || '',
+        blood_group: privateProfile?.blood_group || '',
+        mobile_number: privateProfile?.mobile_number || privateProfile?.phone || '',
+        occupation: privateProfile?.occupation || '',
+        highest_education: privateProfile?.highest_education || '',
+        parents_name: privateProfile?.parents_name || ''
       });
     }
 
@@ -481,22 +483,29 @@ export default function Home() {
     // registration details stored in Supabase Auth metadata.
     if (!profile) {
       const meta = user.user_metadata || {};
-      const { data: createdProfile } = await supabase
+      const { data: createdProfile, error: createProfileError } = await supabase
         .from('profiles')
-        .insert({
+        .insert({ id: user.id, full_name: meta.full_name || '' })
+        .select('full_name, locality_id, is_verified')
+        .maybeSingle();
+
+      if (createProfileError) {
+        console.error('Could not create public profile:', createProfileError.message);
+        setToast('Your account is signed in, but your community profile needs attention.');
+      } else {
+        const { error: privateCreateError } = await supabase.from('profile_private').upsert({
           id: user.id,
-          full_name: meta.full_name || '',
           phone: meta.mobile_number || meta.phone || null,
+          mobile_number: meta.mobile_number || null,
           date_of_birth: meta.date_of_birth || null,
           marital_status: meta.marital_status || null,
           blood_group: meta.blood_group || null,
-          mobile_number: meta.mobile_number || null,
           occupation: meta.occupation || null,
           highest_education: meta.highest_education || null,
           parents_name: meta.parents_name || null
-        })
-        .select('full_name, locality_id, is_verified')
-        .maybeSingle();
+        });
+        if (privateCreateError) console.error('Could not save private registration details:', privateCreateError.message);
+      }
 
       if (createdProfile?.full_name) setUserName(createdProfile.full_name);
       setIsVerified(!!createdProfile?.is_verified);
@@ -530,8 +539,22 @@ export default function Home() {
     if (!profileForm.full_name.trim()) return setToast('Please enter your full name');
     if (mobile && mobile.length !== 10) return setToast('Please enter a valid 10-digit mobile number');
     setProfileBusy(true);
-    const payload = {
-      full_name: profileForm.full_name.trim(),
+    const updatedAt = new Date().toISOString();
+    const { data: savedProfile, error: publicError } = await supabase
+      .from('profiles')
+      .update({ full_name: profileForm.full_name.trim(), updated_at: updatedAt })
+      .eq('id', currentUserId)
+      .select('id, full_name')
+      .maybeSingle();
+
+    if (publicError || !savedProfile) {
+      setProfileBusy(false);
+      setToast(publicError?.message || 'Your profile could not be found. Please sign in again.');
+      return;
+    }
+
+    const privatePayload = {
+      id: currentUserId,
       phone: mobile || null,
       mobile_number: mobile || null,
       date_of_birth: profileForm.date_of_birth || null,
@@ -540,38 +563,27 @@ export default function Home() {
       occupation: profileForm.occupation.trim() || null,
       highest_education: profileForm.highest_education || null,
       parents_name: profileForm.parents_name.trim() || null,
-      updated_at: new Date().toISOString()
+      updated_at: updatedAt
     };
-    const { data: savedProfile, error } = await supabase
-      .from('profiles')
-      .update(payload)
-      .eq('id', currentUserId)
-      .select('id, full_name, phone, date_of_birth, marital_status, blood_group, mobile_number, occupation, highest_education, parents_name')
-      .maybeSingle();
-
+    const { error: privateError } = await supabase.from('profile_private').upsert(privatePayload, { onConflict: 'id' });
     setProfileBusy(false);
-
-    if (error) {
-      setToast(error.message || 'Could not update profile');
+    if (privateError) {
+      setToast('Your name was saved, but private details could not be saved. Please retry.');
+      console.error('Could not save private profile details:', privateError.message);
       return;
     }
 
-    if (!savedProfile) {
-      setToast('Your profile could not be found. Please sign out and sign in again.');
-      return;
-    }
-
-    setUserName(savedProfile.full_name || payload.full_name);
+    setUserName(savedProfile.full_name || profileForm.full_name.trim());
     setProfileForm({
       full_name: savedProfile.full_name || '',
-      phone: savedProfile.phone || '',
-      date_of_birth: savedProfile.date_of_birth || '',
-      marital_status: savedProfile.marital_status || '',
-      blood_group: savedProfile.blood_group || '',
-      mobile_number: savedProfile.mobile_number || savedProfile.phone || '',
-      occupation: savedProfile.occupation || '',
-      highest_education: savedProfile.highest_education || '',
-      parents_name: savedProfile.parents_name || ''
+      phone: privatePayload.phone || '',
+      date_of_birth: privatePayload.date_of_birth || '',
+      marital_status: privatePayload.marital_status || '',
+      blood_group: privatePayload.blood_group || '',
+      mobile_number: privatePayload.mobile_number || privatePayload.phone || '',
+      occupation: privatePayload.occupation || '',
+      highest_education: privatePayload.highest_education || '',
+      parents_name: privatePayload.parents_name || ''
     });
     setShowEditProfile(false);
     setToast('Profile updated successfully');
