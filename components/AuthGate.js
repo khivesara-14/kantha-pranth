@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
 export default function AuthGate({ children }) {
@@ -21,7 +22,8 @@ export default function AuthGate({ children }) {
   const [message, setMessage] = useState('');
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
   const [resetMode, setResetMode] = useState(false);
-  const isSpecialRoute = typeof window !== 'undefined' && (window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/reset-password'));
+  const pathname = usePathname();
+  const isSpecialRoute = pathname?.startsWith('/admin') || pathname?.startsWith('/reset-password');
 
   useEffect(() => {
     if (!supabase) {
