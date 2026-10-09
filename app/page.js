@@ -58,6 +58,12 @@ export default function Home() {
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberPosts, setMemberPosts] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [activeConversation, setActiveConversation] = useState(null);
+  const [threadMessages, setThreadMessages] = useState([]);
+  const [messageDraft, setMessageDraft] = useState('');
+  const [messageBusy, setMessageBusy] = useState(false);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [listings, setListings] = useState(initialListings);
   const [listingBusy, setListingBusy] = useState(false);
   const [showPost, setShowPost] = useState(false);
@@ -175,6 +181,124 @@ export default function Home() {
     setMemberPosts((postRows || []).map(p => ({ ...p, author_id:userId, author:profile.full_name || 'Community Member', area:localityName, time:formatPostTime(p.created_at), text:p.body, avatar:initialsFromName(profile.full_name || 'Community Member'), image_url:p.image_url || '' })));
   }
 
+  async function loadConversations() {
+    if (!supabase || !currentUserId || guestMode) {
+      setConversations([]);
+      return;
+    }
+    const { data: rows, error } = await supabase
+      .from('conversations')
+      .select('id, member_one, member_two, updated_at')
+      .or(`member_one.eq.${currentUserId},member_two.eq.${currentUserId}`)
+      .order('updated_at', { ascending: false })
+      .limit(100);
+    if (error) {
+      setToast(error.message || 'Could not load messages');
+      return;
+    }
+    const list = rows || [];
+    if (!list.length) {
+      setConversations([]);
+      return;
+    }
+    const ids = [...new Set(list.flatMap(x => [x.member_one, x.member_two]).filter(id => id !== currentUserId))];
+    const conversationIds = list.map(x => x.id);
+    const [{ data: profiles }, { data: recentMessages }] = await Promise.all([
+      ids.length ? supabase.from('profiles').select('id, full_name, avatar_url, is_verified').in('id', ids) : Promise.resolve({ data: [] }),
+      supabase.from('messages').select('id, conversation_id, sender_id, body, created_at, read_at').in('conversation_id', conversationIds).order('created_at', { ascending: false }).limit(200)
+    ]);
+    const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+    const latestByConversation = new Map();
+    (recentMessages || []).forEach(message => {
+      if (!latestByConversation.has(message.conversation_id)) latestByConversation.set(message.conversation_id, message);
+    });
+    setConversations(list.map(row => {
+      const otherId = row.member_one === currentUserId ? row.member_two : row.member_one;
+      const other = profileMap.get(otherId);
+      return { ...row, otherId, otherName: other?.full_name || 'Community Member', otherAvatar: other?.avatar_url || '', otherVerified: !!other?.is_verified, latestMessage: latestByConversation.get(row.id) || null };
+    }));
+  }
+
+  async function loadThreadMessages(conversationId) {
+    if (!supabase || !currentUserId || !conversationId) return;
+    setMessagesLoading(true);
+    const { data, error } = await supabase
+      .from('messages')
+      .select('id, conversation_id, sender_id, body, created_at, read_at')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .limit(500);
+    setMessagesLoading(false);
+    if (error) {
+      setToast(error.message || 'Could not load this conversation');
+      return;
+    }
+    const rows = data || [];
+    setThreadMessages(rows);
+    const unreadIds = rows.filter(m => m.sender_id !== currentUserId && !m.read_at).map(m => m.id);
+    if (unreadIds.length) {
+      await supabase.from('messages').update({ read_at: new Date().toISOString() }).in('id', unreadIds);
+    }
+  }
+
+  async function startConversationWith(otherUserId) {
+    if (!supabase || !authenticated || guestMode || !currentUserId) {
+      setShowLogin(true);
+      setToast('Sign in with your account to send private messages');
+      return;
+    }
+    if (!otherUserId || otherUserId === currentUserId) {
+      setToast('You cannot message your own account');
+      return;
+    }
+    const [memberOne, memberTwo] = [currentUserId, otherUserId].sort();
+    let conversation;
+    const { data: existing, error: findError } = await supabase
+      .from('conversations')
+      .select('id, member_one, member_two, updated_at')
+      .eq('member_one', memberOne)
+      .eq('member_two', memberTwo)
+      .maybeSingle();
+    if (findError) return setToast(findError.message || 'Could not open conversation');
+    conversation = existing;
+    if (!conversation) {
+      const { data: created, error } = await supabase
+        .from('conversations')
+        .insert({ member_one: memberOne, member_two: memberTwo })
+        .select('id, member_one, member_two, updated_at')
+        .single();
+      if (error) {
+        // A second tab may have created the same conversation at the same time.
+        const { data: retry } = await supabase.from('conversations').select('id, member_one, member_two, updated_at').eq('member_one', memberOne).eq('member_two', memberTwo).maybeSingle();
+        if (!retry) return setToast(error.message || 'Could not start conversation');
+        conversation = retry;
+      } else conversation = created;
+    }
+    const { data: other } = await supabase.from('profiles').select('id, full_name, avatar_url, is_verified').eq('id', otherUserId).maybeSingle();
+    const prepared = { ...conversation, otherId: otherUserId, otherName: other?.full_name || 'Community Member', otherAvatar: other?.avatar_url || '', otherVerified: !!other?.is_verified };
+    setActiveConversation(prepared);
+    setActive('messages');
+    await loadThreadMessages(prepared.id);
+    await loadConversations();
+  }
+
+  async function sendMessage(e) {
+    e.preventDefault();
+    const body = messageDraft.trim();
+    if (!body || !activeConversation || !supabase || !currentUserId || messageBusy) return;
+    setMessageBusy(true);
+    const { error } = await supabase.from('messages').insert({
+      conversation_id: activeConversation.id,
+      sender_id: currentUserId,
+      body
+    });
+    setMessageBusy(false);
+    if (error) return setToast(error.message || 'Message could not be sent');
+    setMessageDraft('');
+    await loadThreadMessages(activeConversation.id);
+    await loadConversations();
+  }
+
   async function loadNotifications(userId = currentUserId) {
     if (!supabase || !userId) return;
     const { data } = await supabase.from('notifications').select('id, type, post_id, message, read_at, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(20);
@@ -188,6 +312,10 @@ export default function Home() {
   }
 
   const unreadNotifications = notifications.filter(x => !x.read_at).length;
+
+  useEffect(() => {
+    if (active === 'messages' && authenticated && !guestMode) loadConversations();
+  }, [active, authenticated, guestMode, currentUserId]);
 
   useEffect(() => {
     if (!toast) return;
@@ -958,7 +1086,7 @@ export default function Home() {
   }
 
   const nav = [
-    ['home', '⌂', 'Home'], ['community', '◎', 'Community'], ['family', '👨‍👩‍👧‍👦', 'Family'], ['marketplace', '🛒', 'Market'], ['profile', '◉', 'Profile'],
+    ['home', '⌂', 'Home'], ['community', '◎', 'Community'], ['family', '👨‍👩‍👧‍👦', 'Family'], ['marketplace', '🛒', 'Market'], ['messages', '✉', 'Messages'], ['profile', '◉', 'Profile'],
   ];
 
   if (!authChecked) return <AuthScreen loading />;
@@ -1041,9 +1169,20 @@ export default function Home() {
 
         {selectedPost && <Modal title="Community Post" close={() => { setSelectedPost(null); if (typeof window !== 'undefined' && window.location.search) window.history.replaceState({}, '', window.location.pathname); }}><PostCard post={selectedPost} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} /></Modal>}
 
-        {selectedMember && <Modal title="Community Profile" close={() => { setSelectedMember(null); setMemberPosts([]); }}><div style={{ textAlign:'center', padding:'8px 0 18px' }}><Avatar initials={initialsFromName(selectedMember.full_name || 'Community Member')} large /><h2 style={{ margin:'12px 0 4px' }}>{selectedMember.full_name || 'Community Member'} {selectedMember.is_verified && <span className="verified">✓ Verified</span>}</h2><p style={{ margin:0, color:'#8b7d75', fontSize:12 }}>⌖ {selectedMember.localityName}</p>{selectedMember.bio && <p style={{ fontSize:12, lineHeight:1.5, color:'#5f534d', marginTop:10 }}>{selectedMember.bio}</p>}<small style={{ color:'#9a8e86' }}>Member since {new Date(selectedMember.created_at).toLocaleDateString()}</small></div><h3 style={{ margin:'10px 0' }}>Recent posts</h3>{memberPosts.length ? memberPosts.map(p => <PostCard key={p.id} post={p} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner">No posts yet.</div>}</Modal>}
+        {selectedMember && <Modal title="Community Profile" close={() => { setSelectedMember(null); setMemberPosts([]); }}><div style={{ textAlign:'center', padding:'8px 0 18px' }}><Avatar initials={initialsFromName(selectedMember.full_name || 'Community Member')} large /><h2 style={{ margin:'12px 0 4px' }}>{selectedMember.full_name || 'Community Member'} {selectedMember.is_verified && <span className="verified">✓ Verified</span>}</h2><p style={{ margin:0, color:'#8b7d75', fontSize:12 }}>⌖ {selectedMember.localityName}</p>{selectedMember.bio && <p style={{ fontSize:12, lineHeight:1.5, color:'#5f534d', marginTop:10 }}>{selectedMember.bio}</p>}<small style={{ color:'#9a8e86' }}>Member since {new Date(selectedMember.created_at).toLocaleDateString()}</small>{selectedMember.id !== currentUserId && <button className="primary full" style={{ marginTop:12 }} onClick={() => { const targetId = selectedMember.id; setSelectedMember(null); startConversationWith(targetId); }}>✉ Message member</button>}</div><h3 style={{ margin:'10px 0' }}>Recent posts</h3>{memberPosts.length ? memberPosts.map(p => <PostCard key={p.id} post={p} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner">No posts yet.</div>}</Modal>}
 
         {active === 'profile' && <Page title="My Profile" subtitle="Your community identity"><div className="profile-card"><Avatar initials={initialsFromName(userName || 'Guest')} large /><h2>{userName || 'Guest Member'}</h2><p>Kantha Pranth member · {locality}</p>{authenticated && !guestMode && <button className="primary full" onClick={() => setShowEditProfile(true)}>✎ Edit profile</button>}<div className="profile-stats"><div><b>{posts.filter(p => p.author === (userName || 'Community Member')).length}</b><span>Posts</span></div><div><b>0</b><span>Listings</span></div><div><b>1</b><span>Events</span></div></div></div><div className="settings-list">{['My listings','Saved posts','Privacy & visibility','Help & support'].map(x => <button key={x} onClick={() => setToast(x + ' will be available in the next build')}><span>{x}</span><b>›</b></button>)}</div>{authenticated ? <button className="outline full" onClick={signOut}>Sign out</button> : <button className="outline full" onClick={() => setShowLogin(true)}>Sign in / Create account</button>}</Page>}
+
+        {active === 'messages' && <Page title="Messages" subtitle="Private conversations with community members" action={activeConversation ? <button className="soft-btn" onClick={() => { setActiveConversation(null); setThreadMessages([]); }}>← Inbox</button> : null}>
+          {(!authenticated || guestMode || !supabase) ? <div className="info-banner"><b>Private messaging</b><p>Sign in with a registered account to start and receive private messages.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in</button></div> : activeConversation ? <div style={{ display:'grid', gap:12 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:14 }}><Avatar initials={initialsFromName(activeConversation.otherName)} /><div style={{ flex:1 }}><b>{activeConversation.otherName}</b>{activeConversation.otherVerified && <span className="verified"> ✓ Verified</span>}<small style={{ display:'block', color:'#8c8179', marginTop:3 }}>Private one-to-one conversation</small></div></div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8, minHeight:260, maxHeight:'52vh', overflowY:'auto', padding:10, background:'#f8f3ed', borderRadius:14 }}>
+              {messagesLoading ? <small>Loading messages…</small> : threadMessages.length ? threadMessages.map(m => <div key={m.id} style={{ alignSelf:m.sender_id === currentUserId ? 'flex-end' : 'flex-start', maxWidth:'85%', padding:'10px 12px', borderRadius:14, background:m.sender_id === currentUserId ? '#7c1d25' : '#fff', color:m.sender_id === currentUserId ? '#fff' : '#30231e', boxShadow:'0 1px 3px rgba(30,20,10,.06)' }}><div style={{ fontSize:13, whiteSpace:'pre-wrap', overflowWrap:'anywhere' }}>{m.body}</div><small style={{ display:'block', marginTop:5, textAlign:'right', opacity:.72, fontSize:9 }}>{new Date(m.created_at).toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}{m.sender_id === currentUserId && m.read_at ? ' · Read' : ''}</small></div>) : <div style={{ textAlign:'center', margin:'auto', color:'#8c8179', fontSize:12 }}>This is the start of your conversation. Say hello!</div>}
+            </div>
+            <form onSubmit={sendMessage} style={{ display:'flex', gap:8, alignItems:'flex-end' }}><textarea value={messageDraft} onChange={e => setMessageDraft(e.target.value)} rows={2} maxLength={4000} placeholder="Write a private message…" style={{ flex:1, minWidth:0, resize:'vertical' }} required /><button className="primary" disabled={messageBusy || !messageDraft.trim()}>{messageBusy ? 'Sending…' : 'Send'}</button></form>
+            <small style={{ color:'#8c8179' }}>Keep messages respectful. Never share passwords, OTPs, or sensitive financial information.</small>
+          </div> : conversations.length ? <div style={{ display:'grid', gap:8 }}>{conversations.map(conv => <button key={conv.id} type="button" onClick={async () => { setActiveConversation(conv); await loadThreadMessages(conv.id); }} style={{ display:'flex', gap:11, alignItems:'center', textAlign:'left', padding:12, border:'1px solid #eadfd3', borderRadius:14, background:'#fffdf9', cursor:'pointer' }}><Avatar initials={initialsFromName(conv.otherName)} /><div style={{ flex:1, minWidth:0 }}><div style={{ display:'flex', justifyContent:'space-between', gap:8 }}><b>{conv.otherName}{conv.otherVerified ? ' ✓' : ''}</b><small style={{ color:'#8c8179', flexShrink:0 }}>{formatPostTime(conv.latestMessage?.created_at || conv.updated_at)}</small></div><p style={{ margin:'5px 0 0', color:'#8c8179', fontSize:12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{conv.latestMessage ? `${conv.latestMessage.sender_id === currentUserId ? 'You: ' : ''}${conv.latestMessage.body}` : 'Start a conversation'}</p></div><span className="chevron">›</span></button>)}</div> : <div className="empty-state"><div>✉️</div><h3>Your inbox is ready</h3><p>Start a private conversation from a member profile or a marketplace listing.</p></div>}
+        </Page>}
 
         {active === 'help' && <Page title="Community Help" subtitle="Support one another"><div className="help-grid">{[['🩸','Blood requirement'],['🔎','Lost & found'],['🤝','Volunteer'],['❤️','Support request']].map(([i,x]) => <button key={x} className="help-card" onClick={() => setToast('Help request flow coming next') }><span>{i}</span><b>{x}</b><small>Post to your local community</small></button>)}</div><div className="info-banner"><b>Safety first</b><p>Important help requests will be moderated. Never share sensitive personal or financial information publicly.</p></div></Page>}
       </section>
@@ -1113,7 +1252,7 @@ export default function Home() {
         </form>
       </Modal>}
       {selectedEvent && <Modal title={selectedEvent.title} close={() => setSelectedEvent(null)}><div className="detail-hero">{selectedEvent.emoji}</div><Pill>{selectedEvent.tag}</Pill><h2>{selectedEvent.date} · {selectedEvent.time}</h2><p>📍 {selectedEvent.area}, Bengaluru</p><p>Join the community for a meaningful evening of connection, learning and fellowship.</p><button className="primary full" onClick={() => { setSelectedEvent(null); setToast('You are marked as interested'); }}>Interested</button></Modal>}
-      {selectedListing && <Modal title={selectedListing.title} close={() => setSelectedListing(null)}>{selectedListing.image_url ? <img src={selectedListing.image_url} alt={selectedListing.title} style={{ width:'100%', maxHeight:300, objectFit:'cover', borderRadius:14 }} /> : <div className="detail-hero listing-detail">{selectedListing.emoji}</div>}<div className="price huge">{selectedListing.price}</div><p>📍 {selectedListing.area} · {selectedListing.condition || 'Condition not specified'}</p>{selectedListing.description && <p style={{ whiteSpace:'pre-wrap' }}>{selectedListing.description}</p>}<div className="info-banner"><b>{selectedListing.sellerName || 'Community Member'} {selectedListing.sellerVerified && <span className="verified">✓ Verified</span>}</b><p>Community marketplace listing · {selectedListing.created_at ? formatPostTime(selectedListing.created_at) : 'Recently added'}</p></div><button className="primary full" onClick={() => { if (!authenticated || guestMode || !currentUserId) { setSelectedListing(null); setShowLogin(true); setToast('Sign in to contact the seller'); } else { setSelectedListing(null); setToast('Seller messaging is being added in the next marketplace update'); } }}>Message seller</button></Modal>}
+      {selectedListing && <Modal title={selectedListing.title} close={() => setSelectedListing(null)}>{selectedListing.image_url ? <img src={selectedListing.image_url} alt={selectedListing.title} style={{ width:'100%', maxHeight:300, objectFit:'cover', borderRadius:14 }} /> : <div className="detail-hero listing-detail">{selectedListing.emoji}</div>}<div className="price huge">{selectedListing.price}</div><p>📍 {selectedListing.area} · {selectedListing.condition || 'Condition not specified'}</p>{selectedListing.description && <p style={{ whiteSpace:'pre-wrap' }}>{selectedListing.description}</p>}<div className="info-banner"><b>{selectedListing.sellerName || 'Community Member'} {selectedListing.sellerVerified && <span className="verified">✓ Verified</span>}</b><p>Community marketplace listing · {selectedListing.created_at ? formatPostTime(selectedListing.created_at) : 'Recently added'}</p></div><button className="primary full" onClick={() => { const sellerId = selectedListing.seller_id; setSelectedListing(null); if (!sellerId) setToast('This demo listing has no seller account attached'); else startConversationWith(sellerId); }}>✉ Message seller</button></Modal>}
       {toast && <div className="toast">✓ {toast}</div>}
     </main>
   );
