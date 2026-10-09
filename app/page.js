@@ -59,6 +59,7 @@ export default function Home() {
   const [memberPosts, setMemberPosts] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [listings, setListings] = useState(initialListings);
+  const [listingBusy, setListingBusy] = useState(false);
   const [showPost, setShowPost] = useState(false);
   const [postBusy, setPostBusy] = useState(false);
   const [postPhotoPreview, setPostPhotoPreview] = useState('');
@@ -108,10 +109,12 @@ export default function Home() {
           await loadPosts();
           await loadFamilies();
           await loadNotifications(data.session.user.id);
+          await loadListings();
         } else {
           setAuthenticated(false);
           setGuestMode(false);
           setNeedsProfile(false);
+          await loadListings();
         }
         setAuthChecked(true);
       }).catch(() => {
@@ -132,6 +135,7 @@ export default function Home() {
             await loadPosts();
             await loadFamilies();
             await loadNotifications(session.user.id);
+            await loadListings();
           }).catch(error => {
             console.error('Could not load authenticated community data:', error);
             setToast('Signed in, but some community data could not be loaded. Please refresh.');
@@ -404,6 +408,41 @@ export default function Home() {
     });
 
     setPosts(mapped);
+  }
+
+  async function loadListings() {
+    if (!supabase) return;
+    const { data: rows, error } = await supabase
+      .from('listings')
+      .select('id, seller_id, locality_id, title, description, price, category, condition, image_url, status, created_at')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error('Could not load marketplace listings:', error.message);
+      return;
+    }
+    const listingRows = rows || [];
+    if (!listingRows.length) {
+      setListings([]);
+      return;
+    }
+    const localityIds = [...new Set(listingRows.map(x => x.locality_id).filter(Boolean))];
+    const [{ data: localityRows }, { data: sellerRows }] = await Promise.all([
+      localityIds.length ? supabase.from('localities').select('id, name').in('id', localityIds) : Promise.resolve({ data: [] }),
+      supabase.from('profiles').select('id, full_name, is_verified').in('id', [...new Set(listingRows.map(x => x.seller_id).filter(Boolean))])
+    ]);
+    const localityMap = new Map((localityRows || []).map(x => [x.id, x.name]));
+    const sellerMap = new Map((sellerRows || []).map(x => [x.id, x]));
+    setListings(listingRows.map(item => ({
+      ...item,
+      price: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(item.price || 0)),
+      area: localityMap.get(item.locality_id) || 'Bengaluru',
+      sellerName: sellerMap.get(item.seller_id)?.full_name || 'Community Member',
+      sellerVerified: !!sellerMap.get(item.seller_id)?.is_verified,
+      emoji: item.category === 'Electronics' ? '📱' : item.category === 'Furniture' ? '🪑' : item.category === 'Vehicles' ? '🚲' : item.category === 'Property' ? '🏠' : item.category === 'Books' ? '📚' : '📦'
+    })));
   }
 
   async function loadFamilies() {
@@ -876,15 +915,46 @@ export default function Home() {
     }
   }
 
-  function addListing(e) {
+  async function addListing(e) {
     e.preventDefault();
+    if (!supabase || !authenticated || guestMode || !currentUserId) {
+      setShowListing(false);
+      setShowLogin(true);
+      return setToast('Sign in with your account to publish a listing');
+    }
     const fd = new FormData(e.currentTarget);
     const title = fd.get('title')?.toString().trim();
-    const price = fd.get('price')?.toString().trim();
+    const rawPrice = fd.get('price')?.toString().replace(/[,₹\\s]/g, '');
+    const description = fd.get('description')?.toString().trim() || null;
     const category = fd.get('category')?.toString() || 'Other';
-    if (!title || !price) return setToast('Add a title and price');
-    setListings([{ id: Date.now(), title, price: `₹${price}`, area: locality, condition: 'Good condition', category, emoji: category === 'Electronics' ? '📱' : category === 'Furniture' ? '🪑' : '📦' }, ...listings]);
-    setShowListing(false); setActive('marketplace'); setToast('Your listing is live');
+    const condition = fd.get('condition')?.toString() || 'Good condition';
+    const price = Number(rawPrice);
+    if (!title || title.length < 3) return setToast('Enter a product name with at least 3 characters');
+    if (!Number.isFinite(price) || price <= 0 || price > 999999999) return setToast('Enter a valid price greater than zero');
+
+    setListingBusy(true);
+    try {
+      const { data: localityRow, error: localityError } = await supabase
+        .from('localities').select('id').eq('name', locality).maybeSingle();
+      if (localityError || !localityRow) return setToast('Could not find the selected locality');
+      const { error } = await supabase.from('listings').insert({
+        seller_id: currentUserId,
+        locality_id: localityRow.id,
+        title,
+        description,
+        price,
+        category,
+        condition,
+        status: 'active'
+      });
+      if (error) return setToast(error.message || 'Could not publish listing');
+      await loadListings();
+      setShowListing(false);
+      setActive('marketplace');
+      setToast('Your listing is live in the community marketplace');
+    } finally {
+      setListingBusy(false);
+    }
   }
 
   const nav = [
@@ -963,7 +1033,7 @@ export default function Home() {
           {filteredFamilies.length ? filteredFamilies.map(f => <button className="family-card" key={f.id} onClick={() => setSelectedFamily(f)}><div className="family-avatar">{f.photo_url ? <img src={f.photo_url} alt="Family" /> : '👨‍👩‍👧‍👦'}</div><div className="family-info"><h3>{f.family_name || 'Jain Family'}</h3><p>⌖ {f.localities?.name || 'Bengaluru'}</p><small>{f.family_members?.length || 0} family member{(f.family_members?.length || 0) === 1 ? '' : 's'} · {f.visibility === 'private' ? 'Private' : 'Community visible'}</small></div><span className="chevron">›</span></button>) : <div className="empty-state"><div>👨‍👩‍👧‍👦</div><h3>No families found</h3><p>Be one of the first families to join the directory.</p>{authenticated && !guestMode && supabase && <button className="primary" onClick={() => setShowFamilyForm(true)}>Add my family</button>}</div>}
         </Page>}
 
-        {active === 'marketplace' && <Page title="Buy & Sell" subtitle={`${filteredListings.length} listings around Bengaluru`} action={<button className="primary small" onClick={() => setShowListing(true)}>＋ Sell</button>}><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search marketplace" /></div><div className="category-scroll">{['All','Property','Vehicles','Electronics','Furniture','Books','Business'].map(x => <Pill key={x} tone={x === 'All' ? 'active' : ''}>{x}</Pill>)}</div><div className="listing-grid">{filteredListings.map(item => <button className="listing" key={item.id} onClick={() => setSelectedListing(item)}><div className="listing-img">{item.emoji}</div><div className="listing-body"><div className="listing-title">{item.title}</div><div className="price">{item.price}</div><div className="meta">⌖ {item.area} · {item.condition}</div></div></button>)}</div></Page>}
+        {active === 'marketplace' && <Page title="Buy & Sell" subtitle={`${filteredListings.length} active listings around Bengaluru`} action={<button className="primary small" onClick={() => { if (!authenticated || guestMode || !supabase) { setShowLogin(true); setToast('Sign in to sell in the marketplace'); } else setShowListing(true); }}>＋ Sell</button>}><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products, categories, localities…" /></div><div className="category-scroll">{['All','Property','Vehicles','Electronics','Furniture','Books','Business'].map(x => <button key={x} type="button" onClick={() => setSearch(x === 'All' ? '' : x)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={(x === 'All' && !search) || search.toLowerCase() === x.toLowerCase() ? 'active' : ''}>{x}</Pill></button>)}</div>{filteredListings.length ? <div className="listing-grid">{filteredListings.map(item => <button className="listing" key={item.id} onClick={() => setSelectedListing(item)}><div className="listing-img">{item.image_url ? <img src={item.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:12 }} /> : item.emoji}</div><div className="listing-body"><div className="listing-title">{item.title}</div><div className="price">{item.price}</div><div className="meta">⌖ {item.area} · {item.condition || 'Condition not specified'}</div></div></button>)}</div> : <div className="empty-state"><div>🛍️</div><h3>No active listings found</h3><p>Try a different search or be the first to list an item for your community.</p>{authenticated && !guestMode && <button className="primary" onClick={() => setShowListing(true)}>＋ Create a listing</button>}</div>}</Page>}
 
         {active === 'services' && <Page title="Services" subtitle="Trusted people & businesses in your community"><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search doctors, CA, lawyers..." /></div><div className="service-grid">{['Doctors','CA','Lawyers','Education','Home Services','Travel','Catering','Other'].map(x => <button className="service-cat" key={x}><span>{x === 'Doctors' ? '🩺' : x === 'CA' ? '📊' : x === 'Lawyers' ? '⚖️' : x === 'Travel' ? '✈️' : '✦'}</span><b>{x}</b></button>)}</div><SectionHeader title="Featured services" action="See all" />{filteredServices.map(s => <ServiceCard key={s.name} service={s} onToast={setToast} />)}</Page>}
 
@@ -994,7 +1064,7 @@ export default function Home() {
       </form></Modal>}
 
       {showPost && <Modal title="Create a community post" close={() => { setShowPost(false); setPostPhotoPreview(''); }}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><label>Photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0]; setPostPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{postPhotoPreview && <img className="family-photo-preview" src={postPhotoPreview} alt="Post preview" />}<button className="primary full" disabled={postBusy || !isVerifiedUser}>{postBusy ? 'Publishing…' : !isVerifiedUser ? 'Verification required' : 'Publish post'}</button></form></Modal>}
-      {showListing && <Modal title="Sell something" close={() => setShowListing(false)}><form onSubmit={addListing} className="form"><label>Product name<input name="title" placeholder="e.g. Study table" /></label><label>Price<input name="price" inputMode="numeric" placeholder="2500" /></label><label>Category<select name="category"><option>Furniture</option><option>Electronics</option><option>Books</option><option>Vehicles</option><option>Property</option><option>Other</option></select></label><button className="primary full">Publish listing</button></form></Modal>}
+      {showListing && <Modal title="Sell something" close={() => setShowListing(false)}><form onSubmit={addListing} className="form"><div className="info-banner"><b>Reach your local community</b><p>Your listing will be visible in the marketplace while it is active. Never include sensitive personal information in the description.</p></div><label>Product name<input name="title" placeholder="e.g. Study table" minLength={3} maxLength={100} required /></label><label>Price (₹)<input name="price" type="number" inputMode="decimal" min="1" max="999999999" step="0.01" placeholder="2500" required /></label><label>Category<select name="category"><option>Furniture</option><option>Electronics</option><option>Books</option><option>Vehicles</option><option>Property</option><option>Business</option><option>Other</option></select></label><label>Condition<select name="condition"><option>New</option><option>Like new</option><option>Good condition</option><option>Used</option><option>For parts / repair</option></select></label><label>Description <span className="optional">(optional)</span><textarea name="description" rows="3" maxLength={1500} placeholder="Describe the item, pickup details, and anything buyers should know." /></label><button className="primary full" disabled={listingBusy}>{listingBusy ? 'Publishing…' : 'Publish listing'}</button></form></Modal>}
       {showFamilyForm && <Modal title="Add your family" close={() => { setShowFamilyForm(false); setFamilyPhotoPreview(''); }}><form onSubmit={createFamily} className="form"><div className="info-banner"><b>Privacy first</b><p>All contact details are optional. They are shown only when you choose “Show contact details”.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" onChange={e => { const file=e.target.files?.[0]; setFamilyPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{familyPhotoPreview && <img className="family-photo-preview" src={familyPhotoPreview} alt="Family preview" />}<label>Family name <span className="optional">(optional)</span><input name="family_name" placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue="community"><option value="community">Community members</option><option value="private">Private — only me</option></select></label><label>Family members<small className="field-help">One member per line. Example: Rajesh Jain — Father</small><textarea name="members" rows="5" placeholder="Rajesh Jain — Father&#10;Sunita Jain — Mother&#10;Aarav Jain — Son"></textarea></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Add family to directory'}</button></form></Modal>}
       {showFamilyEdit && editingFamily && <Modal title="Edit family details" close={() => { setShowFamilyEdit(false); setEditingFamily(null); }}><form onSubmit={updateFamily} className="form"><div className="info-banner"><b>Update anytime</b><p>You can remove the family name, replace the photo, or change which contact details the community can see.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" /></label>{editingFamily.photo_url && <img className="family-photo-preview" src={editingFamily.photo_url} alt="Current family" />}<label className="check-row"><input name="remove_photo" type="checkbox" /> Remove current family photo</label><label>Family name <span className="optional">(optional)</span><input name="family_name" defaultValue={editingFamily.family_name || ''} placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" defaultChecked={!editingFamily.family_name} /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={editingFamily.localities?.name || locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" defaultValue={editingFamily.address || ''} placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" defaultValue={editingFamily.phone || ''} placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" defaultValue={editingFamily.email || ''} placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" defaultChecked={!!editingFamily.show_contact} /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue={editingFamily.visibility || 'community'}><option value="community">Community members</option><option value="private">Private — only me</option></select></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Save family details'}</button></form></Modal>}
       {selectedFamily && <Modal title={selectedFamily.family_name || 'Jain Family'} close={() => setSelectedFamily(null)}><div className="family-detail-head"><div className="family-avatar large">{selectedFamily.photo_url ? <img src={selectedFamily.photo_url} alt="Family" /> : '👨‍👩‍👧‍👦'}</div><div><h2>{selectedFamily.family_name || 'Jain Family'}</h2><p>⌖ {selectedFamily.localities?.name || 'Bengaluru'}</p></div></div>{selectedFamily.show_contact && selectedFamily.address && <div className="contact-card"><b>Address</b><p>{selectedFamily.address}</p></div>}{selectedFamily.show_contact && (selectedFamily.phone || selectedFamily.email) && <div className="contact-card"><b>Contact</b>{selectedFamily.phone && <a href={`tel:${selectedFamily.phone}`}>📞 {selectedFamily.phone}</a>}{selectedFamily.email && <a href={`mailto:${selectedFamily.email}`}>✉️ {selectedFamily.email}</a>}<div className="contact-actions">{selectedFamily.phone && <a className="contact-action whatsapp" href={whatsappUrl(selectedFamily.phone)} target="_blank" rel="noreferrer">💬 WhatsApp</a>}{selectedFamily.email && <a className="contact-action email" href={`mailto:${selectedFamily.email}?subject=${encodeURIComponent('Hello from Kantha Pranth')}`}>✉️ Send Email</a>}</div></div>}<h3 className="detail-section-title">Family members</h3><div className="member-list">{(selectedFamily.family_members || []).map(m => <div className="member-row" key={m.id}><Avatar initials={initialsFromName(m.member_name)} /><div><b>{m.member_name}</b><span>{m.relationship}</span></div></div>)}</div>{selectedFamily.owner_id === currentUserId && <button className="outline full" onClick={() => { setEditingFamily(selectedFamily); setSelectedFamily(null); setShowFamilyEdit(true); }}>Edit family details</button>}<div className="info-banner"><b>Privacy</b><p>Contact details are shown only when the family chooses to share them with community members.</p></div></Modal>}
@@ -1043,7 +1113,7 @@ export default function Home() {
         </form>
       </Modal>}
       {selectedEvent && <Modal title={selectedEvent.title} close={() => setSelectedEvent(null)}><div className="detail-hero">{selectedEvent.emoji}</div><Pill>{selectedEvent.tag}</Pill><h2>{selectedEvent.date} · {selectedEvent.time}</h2><p>📍 {selectedEvent.area}, Bengaluru</p><p>Join the community for a meaningful evening of connection, learning and fellowship.</p><button className="primary full" onClick={() => { setSelectedEvent(null); setToast('You are marked as interested'); }}>Interested</button></Modal>}
-      {selectedListing && <Modal title={selectedListing.title} close={() => setSelectedListing(null)}><div className="detail-hero listing-detail">{selectedListing.emoji}</div><div className="price huge">{selectedListing.price}</div><p>📍 {selectedListing.area} · {selectedListing.condition}</p><p>Listed by a Kantha Pranth community member.</p><button className="primary full" onClick={() => { setSelectedListing(null); setToast('Seller contact flow coming next'); }}>Message seller</button></Modal>}
+      {selectedListing && <Modal title={selectedListing.title} close={() => setSelectedListing(null)}>{selectedListing.image_url ? <img src={selectedListing.image_url} alt={selectedListing.title} style={{ width:'100%', maxHeight:300, objectFit:'cover', borderRadius:14 }} /> : <div className="detail-hero listing-detail">{selectedListing.emoji}</div>}<div className="price huge">{selectedListing.price}</div><p>📍 {selectedListing.area} · {selectedListing.condition || 'Condition not specified'}</p>{selectedListing.description && <p style={{ whiteSpace:'pre-wrap' }}>{selectedListing.description}</p>}<div className="info-banner"><b>{selectedListing.sellerName || 'Community Member'} {selectedListing.sellerVerified && <span className="verified">✓ Verified</span>}</b><p>Community marketplace listing · {selectedListing.created_at ? formatPostTime(selectedListing.created_at) : 'Recently added'}</p></div><button className="primary full" onClick={() => { if (!authenticated || guestMode || !currentUserId) { setSelectedListing(null); setShowLogin(true); setToast('Sign in to contact the seller'); } else { setSelectedListing(null); setToast('Seller messaging is being added in the next marketplace update'); } }}>Message seller</button></Modal>}
       {toast && <div className="toast">✓ {toast}</div>}
     </main>
   );
