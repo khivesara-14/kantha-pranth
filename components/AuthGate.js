@@ -52,6 +52,17 @@ export default function AuthGate({ children }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!session?.access_token || session?.guest || !session?.user?.id) return;
+    fetch('/api/welcome-message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`
+      }
+    }).catch(() => {});
+  }, [session?.access_token, session?.user?.id, session?.guest]);
+
   async function submit(e) {
     e.preventDefault();
     setMessage('');
