@@ -2003,5 +2003,18 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
   </article>;
 }
 function EventCard({ event, onClick }) { return <button className="event-card" onClick={onClick}><div className="event-date"><b>{event.date.split(' ')[0]}</b><span>{event.date.split(' ')[1]}</span></div><div className="event-icon">{event.emoji}</div><div className="event-info"><Pill>{event.tag}</Pill><h3>{event.title}</h3><p>◷ {event.time} · ⌖ {event.area}</p></div><span className="chevron">›</span></button>; }
-function ServiceCard({ service, onToast }) { return <article className="service-card"><div className="service-icon">{service.icon}</div><div className="service-info"><div className="service-title"><h3>{service.name}</h3>{service.verified && <span className="verified">✓ Verified</span>}</div><p>{service.category}</p><small>⌖ {service.area} · ★ {service.rating}</small></div><button className="call" onClick={() => onToast('Contact flow coming next')}>Call</button></article>; }
+function ServiceCard({ service, onToast }) {
+  const websiteUrl = /^https?:\\/\\//i.test(service.website || '') ? service.website : '';
+  return <article className="service-card">
+    <div className="service-icon">{service.icon || '✦'}</div>
+    <div className="service-info">
+      <div className="service-title"><h3>{service.name}</h3>{service.verified && <span className="verified">✓ Verified</span>}</div>
+      <p>{service.category}</p>
+      {service.description && <p style={{ marginTop:4 }}>{service.description}</p>}
+      <small>⌖ {service.area || 'Bengaluru'}{service.rating ? ` · ★ ${service.rating}` : ''}</small>
+      {websiteUrl && <a href={websiteUrl} target="_blank" rel="noreferrer" style={{ display:'inline-block', marginTop:5, color:'#7c1d25', fontSize:11, fontWeight:700 }}>Visit website ↗</a>}
+    </div>
+    {service.phone ? <a className="call" href={`tel:${String(service.phone).replace(/[^0-9+]/g, '')}`}>Call</a> : <button className="call" onClick={() => onToast('This business has not published a phone number yet')}>Contact</button>}
+  </article>;
+}
 function Modal({ title, close, children }) { return <div className="modal-backdrop" onMouseDown={e => e.target === e.currentTarget && close()}><div className="modal"><div className="modal-head"><h2>{title}</h2><button onClick={close}>×</button></div>{children}</div></div>; }
