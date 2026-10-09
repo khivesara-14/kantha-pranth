@@ -17,32 +17,38 @@ create table if not exists public.profile_private (
   updated_at timestamptz not null default now()
 );
 
+-- Ensure every member has a private row before copying any legacy columns.
+insert into public.profile_private (id, created_at, updated_at)
+select id, created_at, updated_at from public.profiles
+on conflict (id) do nothing;
+
+-- Copy each legacy column independently so older installations with a partial
+-- registration migration do not lose fields that do exist.
 do $migration$
 begin
-  if exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'profiles' and column_name = 'phone'
-  ) and exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'profiles' and column_name = 'parents_name'
-  ) then
-    execute $copy$
-      insert into public.profile_private
-        (id, phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name, created_at, updated_at)
-      select
-        id, phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name, created_at, updated_at
-      from public.profiles
-      on conflict (id) do update set
-        phone = excluded.phone,
-        mobile_number = excluded.mobile_number,
-        date_of_birth = excluded.date_of_birth,
-        marital_status = excluded.marital_status,
-        blood_group = excluded.blood_group,
-        occupation = excluded.occupation,
-        highest_education = excluded.highest_education,
-        parents_name = excluded.parents_name,
-        updated_at = now()
-    $copy$;
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='phone') then
+    execute 'update public.profile_private p set phone = x.phone from public.profiles x where p.id = x.id';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='mobile_number') then
+    execute 'update public.profile_private p set mobile_number = x.mobile_number from public.profiles x where p.id = x.id';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='date_of_birth') then
+    execute 'update public.profile_private p set date_of_birth = x.date_of_birth from public.profiles x where p.id = x.id';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='marital_status') then
+    execute 'update public.profile_private p set marital_status = x.marital_status from public.profiles x where p.id = x.id';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='blood_group') then
+    execute 'update public.profile_private p set blood_group = x.blood_group from public.profiles x where p.id = x.id';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='occupation') then
+    execute 'update public.profile_private p set occupation = x.occupation from public.profiles x where p.id = x.id';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='highest_education') then
+    execute 'update public.profile_private p set highest_education = x.highest_education from public.profiles x where p.id = x.id';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='parents_name') then
+    execute 'update public.profile_private p set parents_name = x.parents_name from public.profiles x where p.id = x.id';
   end if;
 end
 $migration$;
