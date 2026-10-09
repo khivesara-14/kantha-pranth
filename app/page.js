@@ -82,6 +82,9 @@ export default function Home() {
   const [postBusy, setPostBusy] = useState(false);
   const [postPhotoPreview, setPostPhotoPreview] = useState('');
   const [showListing, setShowListing] = useState(false);
+  const [businessDirectory, setBusinessDirectory] = useState(services);
+  const [showBusinessForm, setShowBusinessForm] = useState(false);
+  const [businessBusy, setBusinessBusy] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedListing, setSelectedListing] = useState(null);
@@ -191,6 +194,74 @@ export default function Home() {
     }
     setSelectedMember({ ...profile, localityName });
     setMemberPosts((postRows || []).map(p => ({ ...p, author_id:userId, author:profile.full_name || 'Community Member', area:localityName, time:formatPostTime(p.created_at), text:p.body, avatar:initialsFromName(profile.full_name || 'Community Member'), image_url:p.image_url || '' })));
+  }
+
+  async function loadBusinessDirectory() {
+    if (!supabase) return;
+    const { data: rows, error } = await supabase.from('businesses')
+      .select('id, owner_id, name, category, description, locality_id, phone, website, verified, created_at')
+      .order('verified', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) {
+      console.error('Could not load business directory:', error.message);
+      return;
+    }
+    const list = rows || [];
+    if (!list.length) {
+      setBusinessDirectory(services);
+      return;
+    }
+    const localityIds = [...new Set(list.map(x => x.locality_id).filter(Boolean))];
+    const { data: localityRows } = localityIds.length
+      ? await supabase.from('localities').select('id, name').in('id', localityIds)
+      : { data: [] };
+    const localityMap = new Map((localityRows || []).map(x => [x.id, x.name]));
+    setBusinessDirectory(list.map(item => ({
+      ...item,
+      area: localityMap.get(item.locality_id) || 'Bengaluru',
+      rating: '—',
+      icon: item.category?.toLowerCase().includes('health') || item.category?.toLowerCase().includes('doctor') ? '🩺' : item.category?.toLowerCase().includes('legal') || item.category?.toLowerCase().includes('law') ? '⚖️' : item.category?.toLowerCase().includes('food') || item.category?.toLowerCase().includes('cater') ? '🍽️' : '✦'
+    })));
+  }
+
+  async function createBusinessListing(e) {
+    e.preventDefault();
+    if (!supabase || !authenticated || guestMode || !currentUserId) {
+      setShowBusinessForm(false);
+      setShowLogin(true);
+      return setToast('Sign in to add your business');
+    }
+    const fd = new FormData(e.currentTarget);
+    const name = fd.get('name')?.toString().trim() || '';
+    const category = fd.get('category')?.toString() || 'Other';
+    const description = fd.get('description')?.toString().trim() || '';
+    const phone = fd.get('phone')?.toString().replace(/\\D/g, '') || '';
+    let website = fd.get('website')?.toString().trim() || '';
+    if (name.length < 2) return setToast('Enter your business name');
+    if (phone && phone.length !== 10) return setToast('Enter a valid 10-digit contact number');
+    if (website && !/^https?:\\/\\//i.test(website)) website = `https://${website}`;
+    setBusinessBusy(true);
+    try {
+      const { data: localityRow, error: localityError } = await supabase.from('localities').select('id').eq('name', locality).maybeSingle();
+      if (localityError || !localityRow) return setToast('Could not find your locality');
+      const { error } = await supabase.from('businesses').insert({
+        owner_id: currentUserId,
+        name,
+        category,
+        description: description || null,
+        locality_id: localityRow.id,
+        phone: phone || null,
+        website: website || null,
+        verified: false
+      });
+      if (error) return setToast(error.message || 'Could not add business');
+      await loadBusinessDirectory();
+      setShowBusinessForm(false);
+      setToast('Business added. It will appear as unverified until reviewed.');
+    } finally {
+      setBusinessBusy(false);
+    }
   }
 
   async function loadSavedPosts() {
@@ -557,6 +628,10 @@ export default function Home() {
   }, [active, authenticated, guestMode, currentUserId]);
 
   useEffect(() => {
+    loadBusinessDirectory();
+  }, [authenticated, currentUserId]);
+
+  useEffect(() => {
     loadCommunityEvents();
   }, [authenticated, currentUserId]);
 
@@ -590,7 +665,7 @@ export default function Home() {
   }, [posts, communityFilter, communitySearch]);
 
   const filteredListings = useMemo(() => listings.filter(x => (!myListingsOnly || (currentUserId && x.seller_id === currentUserId)) && `${x.title} ${x.category} ${x.area}`.toLowerCase().includes(search.toLowerCase())), [listings, search, myListingsOnly, currentUserId]);
-  const filteredServices = useMemo(() => services.filter(x => `${x.name} ${x.category} ${x.area}`.toLowerCase().includes(search.toLowerCase())), [search]);
+  const filteredServices = useMemo(() => businessDirectory.filter(x => `${x.name} ${x.category} ${x.area || ''} ${x.description || ''}`.toLowerCase().includes(search.toLowerCase())), [businessDirectory, search]);
   const filteredFamilies = useMemo(() => families.filter(f => `${f.family_name} ${f.localities?.name || ''}`.toLowerCase().includes(familySearch.toLowerCase())), [families, familySearch]);
 
   useEffect(() => {
@@ -1431,7 +1506,7 @@ export default function Home() {
 
         {active === 'marketplace' && <Page title="Buy & Sell" subtitle={`${filteredListings.length} active listings around Bengaluru`} action={<button className="primary small" onClick={() => { if (!authenticated || guestMode || !supabase) { setShowLogin(true); setToast('Sign in to sell in the marketplace'); } else setShowListing(true); }}>＋ Sell</button>}><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products, categories, localities…" /></div>{authenticated && !guestMode && <button type="button" className="soft-btn" style={{ marginTop:8 }} onClick={() => setMyListingsOnly(value => !value)}>{myListingsOnly ? '✓ Showing my listings · Show all' : 'My listings'}</button>}<div className="category-scroll">{['All','Property','Vehicles','Electronics','Furniture','Books','Business'].map(x => <button key={x} type="button" onClick={() => setSearch(x === 'All' ? '' : x)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={(x === 'All' && !search) || search.toLowerCase() === x.toLowerCase() ? 'active' : ''}>{x}</Pill></button>)}</div>{filteredListings.length ? <div className="listing-grid">{filteredListings.map(item => <button className="listing" key={item.id} onClick={() => setSelectedListing(item)}><div className="listing-img">{item.image_url ? <img src={item.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:12 }} /> : item.emoji}</div><div className="listing-body"><div className="listing-title">{item.title}</div><div className="price">{item.price}</div><div className="meta">⌖ {item.area} · {item.condition || 'Condition not specified'}</div></div></button>)}</div> : <div className="empty-state"><div>🛍️</div><h3>No active listings found</h3><p>Try a different search or be the first to list an item for your community.</p>{authenticated && !guestMode && <button className="primary" onClick={() => setShowListing(true)}>＋ Create a listing</button>}</div>}</Page>}
 
-        {active === 'services' && <Page title="Services" subtitle="Trusted people & businesses in your community"><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search doctors, CA, lawyers..." /></div><div className="service-grid">{['Doctors','CA','Lawyers','Education','Home Services','Travel','Catering','Other'].map(x => <button className="service-cat" key={x}><span>{x === 'Doctors' ? '🩺' : x === 'CA' ? '📊' : x === 'Lawyers' ? '⚖️' : x === 'Travel' ? '✈️' : '✦'}</span><b>{x}</b></button>)}</div><SectionHeader title="Featured services" action="See all" />{filteredServices.map(s => <ServiceCard key={s.name} service={s} onToast={setToast} />)}</Page>}
+        {active === 'services' && <Page title="Businesses & Services" subtitle="Discover local services and community businesses" action={<button className="primary small" onClick={() => { if (!authenticated || guestMode || !supabase) { setShowLogin(true); setToast('Sign in to list your business'); } else setShowBusinessForm(true); }}>＋ Add business</button>}><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search doctors, CA, lawyers, services…" /></div><div className="service-grid">{['Doctors','CA','Lawyers','Education','Home Services','Travel','Catering','Other'].map(x => <button className="service-cat" key={x} onClick={() => setSearch(x)}><span>{x === 'Doctors' ? '🩺' : x === 'CA' ? '📊' : x === 'Lawyers' ? '⚖️' : x === 'Travel' ? '✈️' : '✦'}</span><b>{x}</b></button>)}</div><SectionHeader title="Community directory" action="Clear filter" onClick={() => setSearch('')} />{filteredServices.length ? filteredServices.map(s => <ServiceCard key={s.id || s.name} service={s} onToast={setToast} />) : <div className="empty-state"><div>🏪</div><h3>No businesses found</h3><p>Try another search or add a business to the community directory.</p><button className="primary" onClick={() => { if (authenticated && !guestMode && supabase) setShowBusinessForm(true); else setShowLogin(true); }}>＋ Add business</button></div>}</Page>}
 
         {active === 'events' && <Page title="Events" subtitle="Meet, celebrate, and connect with the community" action={isVerifiedUser && supabase ? <button className="primary small" onClick={() => setShowEventForm(true)}>＋ Create event</button> : null}>
           <div className="event-tabs">{['Upcoming','My events','Past'].map(tab => <button key={tab} type="button" onClick={() => setEventFilter(tab)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={eventFilter === tab ? 'active' : ''}>{tab}</Pill></button>)}</div>
@@ -1494,6 +1569,7 @@ export default function Home() {
 
       {showPost && <Modal title="Create a community post" close={() => { setShowPost(false); setPostPhotoPreview(''); }}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><label>Photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0]; setPostPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{postPhotoPreview && <img className="family-photo-preview" src={postPhotoPreview} alt="Post preview" />}<button className="primary full" disabled={postBusy || !isVerifiedUser}>{postBusy ? 'Publishing…' : !isVerifiedUser ? 'Verification required' : 'Publish post'}</button></form></Modal>}
       {showEventForm && <Modal title="Create community event" close={() => setShowEventForm(false)}><form onSubmit={createCommunityEvent} className="form"><div className="info-banner"><b>Organiser locality: {locality}</b><p>Events are published under your account. Add clear venue and timing details.</p></div><label>Event title<input name="title" minLength={4} maxLength={120} placeholder="e.g. Jain youth networking evening" required /></label><label>Description<textarea name="description" rows={4} maxLength={2500} placeholder="What will happen at the event? Who is welcome?" /></label><div className="two-col"><label>Date<input name="date" type="date" min={new Date().toISOString().split('T')[0]} required /></label><label>Time<input name="time" type="time" required /></label></div><label>Venue / address<input name="location" maxLength={200} placeholder="Temple hall, community centre…" required /></label><button className="primary full" disabled={eventBusy}>{eventBusy ? 'Publishing…' : 'Publish event'}</button></form></Modal>}
+      {showBusinessForm && <Modal title="Add a community business" close={() => setShowBusinessForm(false)}><form onSubmit={createBusinessListing} className="form"><div className="info-banner"><b>Locality: {locality}</b><p>Your listing will appear as unverified until an administrator reviews it. Only publish contact details intended for customers.</p></div><label>Business name<input name="name" minLength={2} maxLength={120} placeholder="e.g. Jain Family Clinic" required /></label><label>Category<select name="category">{['Healthcare','Chartered Accountant','Legal Services','Education','Home Services','Travel','Catering','Retail','Other'].map(x => <option key={x}>{x}</option>)}</select></label><label>Description<textarea name="description" rows={3} maxLength={1500} placeholder="Services offered, hours, and what makes your business useful to the community." /></label><label>Business contact number<input name="phone" type="tel" inputMode="numeric" maxLength={10} placeholder="10-digit phone number" /></label><label>Website <span className="optional">(optional)</span><input name="website" type="text" maxLength={250} placeholder="yourbusiness.in" /></label><button className="primary full" disabled={businessBusy}>{businessBusy ? 'Adding…' : 'Add business'}</button></form></Modal>}
       {showPrivacyInfo && <Modal title="Privacy & visibility" close={() => setShowPrivacyInfo(false)}><div className="info-banner"><b>Your registration details are private</b><p>Your date of birth, mobile number, blood group, marital status, occupation, education, and parents' names are stored separately from your public community profile. Only you and authorised community administrators can access those details.</p></div><div className="info-banner"><b>What other members can see</b><p>Your name, profile photo, bio, verification badge, locality, and the posts you publish may be visible to signed-in community members.</p></div><button className="primary full" onClick={() => { setShowPrivacyInfo(false); setShowEditProfile(true); }}>Review my profile details</button></Modal>}
       {showHelpForm && <Modal title="Community help request" close={() => setShowHelpForm(false)}><form onSubmit={submitHelpRequest} className="form"><div className="info-banner"><b>Locality: {locality}</b><p>Your request will be visible to signed-in members. Keep personal and contact details private.</p></div><label>Request type<select name="category" value={helpCategory} onChange={e => setHelpCategory(e.target.value)}>{['Blood requirement','Lost & found','Volunteer','Support request','Other'].map(x => <option key={x}>{x}</option>)}</select></label><label>Title<input name="title" minLength={4} maxLength={120} placeholder="Briefly describe what you need" required /></label><label>Details<textarea name="description" rows={4} minLength={10} maxLength={2500} placeholder="Explain how the community can help. Avoid sharing sensitive personal information." required /></label><button className="primary full" disabled={helpBusy}>{helpBusy ? 'Publishing…' : 'Publish help request'}</button></form></Modal>}
       {showListing && <Modal title="Sell something" close={() => setShowListing(false)}><form onSubmit={addListing} className="form"><div className="info-banner"><b>Reach your local community</b><p>Your listing will be visible in the marketplace while it is active. Never include sensitive personal information in the description.</p></div><label>Product name<input name="title" placeholder="e.g. Study table" minLength={3} maxLength={100} required /></label><label>Price (₹)<input name="price" type="number" inputMode="decimal" min="1" max="999999999" step="0.01" placeholder="2500" required /></label><label>Category<select name="category"><option>Furniture</option><option>Electronics</option><option>Books</option><option>Vehicles</option><option>Property</option><option>Business</option><option>Other</option></select></label><label>Condition<select name="condition"><option>New</option><option>Like new</option><option>Good condition</option><option>Used</option><option>For parts / repair</option></select></label><label>Description <span className="optional">(optional)</span><textarea name="description" rows="3" maxLength={1500} placeholder="Describe the item, pickup details, and anything buyers should know." /></label><button className="primary full" disabled={listingBusy}>{listingBusy ? 'Publishing…' : 'Publish listing'}</button></form></Modal>}
