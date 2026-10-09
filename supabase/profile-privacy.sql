@@ -17,21 +17,35 @@ create table if not exists public.profile_private (
   updated_at timestamptz not null default now()
 );
 
-insert into public.profile_private
-  (id, phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name, created_at, updated_at)
-select
-  id, phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name, created_at, updated_at
-from public.profiles
-on conflict (id) do update set
-  phone = excluded.phone,
-  mobile_number = excluded.mobile_number,
-  date_of_birth = excluded.date_of_birth,
-  marital_status = excluded.marital_status,
-  blood_group = excluded.blood_group,
-  occupation = excluded.occupation,
-  highest_education = excluded.highest_education,
-  parents_name = excluded.parents_name,
-  updated_at = now();
+do $migration$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'profiles' and column_name = 'phone'
+  ) and exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'profiles' and column_name = 'parents_name'
+  ) then
+    execute $copy$
+      insert into public.profile_private
+        (id, phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name, created_at, updated_at)
+      select
+        id, phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name, created_at, updated_at
+      from public.profiles
+      on conflict (id) do update set
+        phone = excluded.phone,
+        mobile_number = excluded.mobile_number,
+        date_of_birth = excluded.date_of_birth,
+        marital_status = excluded.marital_status,
+        blood_group = excluded.blood_group,
+        occupation = excluded.occupation,
+        highest_education = excluded.highest_education,
+        parents_name = excluded.parents_name,
+        updated_at = now()
+    $copy$;
+  end if;
+end
+$migration$;
 
 alter table public.profile_private enable row level security;
 
