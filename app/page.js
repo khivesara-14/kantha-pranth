@@ -1369,12 +1369,12 @@ export default function Home() {
         {active === 'events' && <Page title="Events" subtitle="Meet, celebrate, and connect with the community" action={isVerifiedUser && supabase ? <button className="primary small" onClick={() => setShowEventForm(true)}>＋ Create event</button> : null}>
           <div className="event-tabs">{['Upcoming','My events','Past'].map(tab => <button key={tab} type="button" onClick={() => setEventFilter(tab)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={eventFilter === tab ? 'active' : ''}>{tab}</Pill></button>)}</div>
           {communityEvents.filter(event => {
-            const eventTime = new Date(event.starts_at || (new Date().getFullYear() + ' ' + event.date)).getTime();
+            const eventTime = eventTimestamp(event);
             if (eventFilter === 'My events') return typeof event.id === 'string' && myEventIds.includes(event.id);
             if (eventFilter === 'Past') return Number.isFinite(eventTime) && eventTime < Date.now();
             return !Number.isFinite(eventTime) || eventTime >= Date.now();
           }).map(e => <EventCard key={e.id} event={e} onClick={() => setSelectedEvent(e)} />)}
-          {!communityEvents.filter(event => eventFilter === 'My events' ? typeof event.id === 'string' && myEventIds.includes(event.id) : eventFilter === 'Past' ? new Date(event.starts_at || '2999-01-01').getTime() < Date.now() : new Date(event.starts_at || '2999-01-01').getTime() >= Date.now()).length && <div className="empty-state"><div>📅</div><h3>No events in this view</h3><p>{eventFilter === 'My events' ? 'Events you register for will appear here.' : 'Check back soon for community gatherings.'}</p></div>}
+          {!communityEvents.filter(event => eventFilter === 'My events' ? typeof event.id === 'string' && myEventIds.includes(event.id) : eventFilter === 'Past' ? eventTimestamp(event) < Date.now() : eventTimestamp(event) >= Date.now()).length && <div className="empty-state"><div>📅</div><h3>No events in this view</h3><p>{eventFilter === 'My events' ? 'Events you register for will appear here.' : 'Check back soon for community gatherings.'}</p></div>}
         </Page>}
 
         {selectedPost && <Modal title="Community Post" close={() => { setSelectedPost(null); if (typeof window !== 'undefined' && window.location.search) window.history.replaceState({}, '', window.location.pathname); }}><PostCard post={selectedPost} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} /></Modal>}
@@ -1475,6 +1475,12 @@ export default function Home() {
 }
 
 
+
+function eventTimestamp(event) {
+  if (event?.starts_at) return new Date(event.starts_at).getTime();
+  const parsed = new Date(`${event?.date || ''} ${new Date().getFullYear()}`);
+  return parsed.getTime();
+}
 
 function formatPostTime(value) {
   if (!value) return 'now';
