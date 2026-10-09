@@ -553,6 +553,19 @@ export default function Home() {
   const unreadNotifications = notifications.filter(x => !x.read_at).length;
 
   useEffect(() => {
+    if (active === 'saved') loadSavedPosts();
+  }, [active, authenticated, guestMode, currentUserId]);
+
+  useEffect(() => {
+    loadCommunityEvents();
+  }, [authenticated, currentUserId]);
+
+  useEffect(() => {
+    if (authenticated && !guestMode) loadMyEventRegistrations();
+    else setMyEventIds([]);
+  }, [authenticated, guestMode, currentUserId]);
+
+  useEffect(() => {
     if (active === 'help' && authenticated && !guestMode) loadHelpRequests();
   }, [active, authenticated, guestMode, currentUserId]);
 
