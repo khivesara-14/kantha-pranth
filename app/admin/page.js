@@ -160,19 +160,23 @@ export default function AdminPage() {
 
     const [
       { data: profileRows, error: profileError },
+      { data: privateRows, error: privateError },
       { data: localityRows, error: localityError }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name, locality_id, avatar_url, bio, is_verified, created_at').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, full_name, locality_id, avatar_url, bio, is_verified, created_at').order('created_at', { ascending: false }),
+      supabase.from('profile_private').select('id, phone, mobile_number, date_of_birth, marital_status, blood_group, occupation, highest_education, parents_name'),
       supabase.from('localities').select('id, name').order('name')
     ]);
 
-    if (profileError) {
-      setStatsError(profileError.message || 'Could not load members.');
+    if (profileError || privateError) {
+      setStatsError((profileError || privateError)?.message || 'Could not load members.');
       setMembers([]);
     } else {
       const map = new Map((localityRows || []).map(x => [x.id, x.name]));
+      const privateMap = new Map((privateRows || []).map(x => [x.id, x]));
       setMembers((profileRows || []).map(x => ({
         ...x,
+        ...(privateMap.get(x.id) || {}),
         locality_name: map.get(x.locality_id) || 'Not set'
       })));
     }
