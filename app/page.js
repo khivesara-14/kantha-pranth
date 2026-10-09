@@ -907,7 +907,7 @@ export default function Home() {
       </header>
 
       <section className="content">
-        <div className="location-row"><button className="location-pill">⌖ {locality} <span>⌄</span></button><button className="soft-btn" onClick={() => setShowLogin(true)}>Sign in</button></div>
+        <div className="location-row"><button className="location-pill">⌖ {locality} <span>⌄</span></button>{!authenticated && <button className="soft-btn" onClick={() => setShowLogin(true)}>Sign in</button>}</div>
 
         {active === 'home' && <>
           <section className="hero">
