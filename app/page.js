@@ -236,11 +236,11 @@ export default function Home() {
     const name = fd.get('name')?.toString().trim() || '';
     const category = fd.get('category')?.toString() || 'Other';
     const description = fd.get('description')?.toString().trim() || '';
-    const phone = fd.get('phone')?.toString().replace(/\\D/g, '') || '';
+    const phone = fd.get('phone')?.toString().replace(/\D/g, '') || '';
     let website = fd.get('website')?.toString().trim() || '';
     if (name.length < 2) return setToast('Enter your business name');
     if (phone && phone.length !== 10) return setToast('Enter a valid 10-digit contact number');
-    if (website && !/^https?:\\/\\//i.test(website)) website = `https://${website}`;
+    if (website && !/^https?:\/\//i.test(website)) website = `https://${website}`;
     setBusinessBusy(true);
     try {
       const { data: localityRow, error: localityError } = await supabase.from('localities').select('id').eq('name', locality).maybeSingle();
@@ -1395,7 +1395,7 @@ export default function Home() {
     }
     const fd = new FormData(e.currentTarget);
     const title = fd.get('title')?.toString().trim();
-    const rawPrice = fd.get('price')?.toString().replace(/[,₹\\s]/g, '');
+    const rawPrice = fd.get('price')?.toString().replace(/[,₹\s]/g, '');
     const description = fd.get('description')?.toString().trim() || null;
     const category = fd.get('category')?.toString() || 'Other';
     const condition = fd.get('condition')?.toString() || 'Good condition';
@@ -2004,7 +2004,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
 }
 function EventCard({ event, onClick }) { return <button className="event-card" onClick={onClick}><div className="event-date"><b>{event.date.split(' ')[0]}</b><span>{event.date.split(' ')[1]}</span></div><div className="event-icon">{event.emoji}</div><div className="event-info"><Pill>{event.tag}</Pill><h3>{event.title}</h3><p>◷ {event.time} · ⌖ {event.area}</p></div><span className="chevron">›</span></button>; }
 function ServiceCard({ service, onToast }) {
-  const websiteUrl = /^https?:\\/\\//i.test(service.website || '') ? service.website : '';
+  const websiteUrl = /^https?:\/\//i.test(service.website || '') ? service.website : '';
   return <article className="service-card">
     <div className="service-icon">{service.icon || '✦'}</div>
     <div className="service-info">
