@@ -20,6 +20,7 @@ export default function AuthGate({ children }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
   const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
   useEffect(() => {
@@ -135,6 +136,29 @@ export default function AuthGate({ children }) {
     }
   }
 
+  async function sendPasswordReset() {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!supabase || !cleanEmail.includes('@')) {
+      setMessage('Enter the email address for your account first.');
+      return;
+    }
+    setBusy(true);
+    setMessage('');
+    try {
+      const redirectTo = typeof window !== 'undefined' ? window.location.origin + '/reset-password' : undefined;
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
+      if (error) setMessage(error.message || 'Could not send password reset email.');
+      else {
+        setResetMode(false);
+        setMessage('Password reset email sent. Open the link in your email to choose a new password.');
+      }
+    } catch (error) {
+      setMessage(error?.message || 'Could not send password reset email.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function resendConfirmation() {
     const cleanEmail = email.trim().toLowerCase();
     if (!supabase || !cleanEmail.includes('@')) {
@@ -225,10 +249,6 @@ export default function AuthGate({ children }) {
             Get Started
           </button>
 
-          <button type="button" style={styles.guest} onClick={continueAsGuest}>
-            Continue as guest
-          </button>
-
           <small style={styles.foot}>Built for the Jain Community of Bengaluru</small>
         </div>
       </main>
@@ -241,19 +261,19 @@ export default function AuthGate({ children }) {
         <button type="button" style={styles.back} onClick={() => setScreen('welcome')}>← Back</button>
         <div style={styles.welcomeLogo}>☀</div>
         <div style={styles.brand}>KANTHA PRANTH</div>
-        <h1 style={styles.loginTitle}>{mode === 'signup' ? 'Create your account' : 'Welcome Back'}</h1>
-        <p style={styles.loginSub}>Sign in to continue to your Jain community.</p>
+        <h1 style={styles.loginTitle}>{resetMode ? 'Reset your password' : mode === 'signup' ? 'Create your account' : 'Welcome Back'}</h1>
+        <p style={styles.loginSub}>{resetMode ? 'Enter your registered email and we will send a password reset link.' : 'Sign in to continue to your Jain community.'}</p>
 
-        <form onSubmit={submit} style={styles.form}>
+        <form onSubmit={resetMode ? (e) => { e.preventDefault(); sendPasswordReset(); } : submit} style={styles.form}>
           <label style={styles.label}>Email address
             <input value={email} onChange={e => setEmail(e.target.value)} style={styles.input} placeholder="you@example.com" type="email" autoComplete="email" />
           </label>
 
-          <label style={styles.label}>Password
+          {!resetMode && <label style={styles.label}>Password
             <input value={password} onChange={e => setPassword(e.target.value)} style={styles.input} placeholder="Minimum 8 characters" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} />
-          </label>
+          </label>}
 
-          {mode === 'signup' && (
+          {!resetMode && mode === 'signup' && (
             <div style={styles.signupDetails}>
               <div style={styles.sectionTitle}>Personal details</div>
 
@@ -310,13 +330,14 @@ export default function AuthGate({ children }) {
           {emailConfirmationRequired && <button type="button" disabled={busy} onClick={resendConfirmation} style={styles.link}>{busy ? 'Sending…' : 'Resend confirmation email'}</button>}
 
           <button type="submit" disabled={busy} style={styles.primary}>
-            {busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}
+            {busy ? 'Please wait…' : resetMode ? 'Send reset link' : mode === 'signup' ? 'Create account' : 'Sign in'}
           </button>
         </form>
 
-        <button type="button" disabled={busy} onClick={() => { setMessage(''); setMode(mode === 'login' ? 'signup' : 'login'); }} style={styles.link}>
+        {!resetMode && mode === 'login' && <button type="button" disabled={busy} onClick={() => { setMessage(''); setEmailConfirmationRequired(false); setResetMode(true); }} style={styles.link}>Forgot password?</button>}
+        {resetMode ? <button type="button" disabled={busy} onClick={() => { setMessage(''); setResetMode(false); }} style={styles.link}>Back to sign in</button> : <button type="button" disabled={busy} onClick={() => { setMessage(''); setEmailConfirmationRequired(false); setMode(mode === 'login' ? 'signup' : 'login'); }} style={styles.link}>
           {mode === 'login' ? 'New to Kantha Pranth? Create an account' : 'Already have an account? Sign in'}
-        </button>
+        </button>}
       </div>
     </main>
   );
