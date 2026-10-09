@@ -49,6 +49,7 @@ export default function Home() {
   const [familyBusy, setFamilyBusy] = useState(false);
   const [familyPhotoPreview, setFamilyPhotoPreview] = useState('');
   const [locality, setLocality] = useState('Nagarbhavi');
+  const [showLocalityPicker, setShowLocalityPicker] = useState(false);
   const [posts, setPosts] = useState(initialPosts);
   const [communityFilter, setCommunityFilter] = useState('All');
   const [communitySearch, setCommunitySearch] = useState('');
@@ -696,6 +697,29 @@ export default function Home() {
     setAuthFeedback('Password reset email sent. Check your inbox.');
   }
 
+  async function changeLocality(nextLocality) {
+    setLocality(nextLocality);
+    setProfileLocality(nextLocality);
+    setShowLocalityPicker(false);
+
+    // Keep the selected locality on the signed-in member profile when possible.
+    if (supabase && authenticated && currentUserId) {
+      const { data: localityRow, error: localityError } = await supabase
+        .from('localities')
+        .select('id')
+        .eq('name', nextLocality)
+        .maybeSingle();
+
+      if (!localityError && localityRow?.id) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ locality_id: localityRow.id, updated_at: new Date().toISOString() })
+          .eq('id', currentUserId);
+        if (error) setToast('Locality changed on this device, but could not be saved to your profile.');
+      }
+    }
+  }
+
   async function completeProfileSetup(e) {
     e.preventDefault();
     const cleanName = userName.trim();
@@ -907,7 +931,14 @@ export default function Home() {
       </header>
 
       <section className="content">
-        <div className="location-row"><button className="location-pill">⌖ {locality} <span>⌄</span></button>{!authenticated && <button className="soft-btn" onClick={() => setShowLogin(true)}>Sign in</button>}</div>
+        <div className="location-row" style={{ position:'relative' }}>
+          <button type="button" className="location-pill" aria-haspopup="listbox" aria-expanded={showLocalityPicker} onClick={() => setShowLocalityPicker(open => !open)}>⌖ {locality} <span>{showLocalityPicker ? '⌃' : '⌄'}</span></button>
+          {!authenticated && <button className="soft-btn" onClick={() => setShowLogin(true)}>Sign in</button>}
+          {showLocalityPicker && <div role="listbox" aria-label="Choose your locality" style={{ position:'absolute', left:0, top:'calc(100% + 8px)', width:230, maxWidth:'calc(100vw - 48px)', maxHeight:280, overflowY:'auto', padding:6, background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:14, boxShadow:'0 14px 32px rgba(55,30,20,.16)', zIndex:60 }}>
+            <div style={{ padding:'8px 10px 7px', color:'#8c8179', fontSize:10, fontWeight:800, letterSpacing:'.08em' }}>SELECT LOCALITY</div>
+            {localities.map(name => <button key={name} type="button" role="option" aria-selected={locality === name} onClick={() => changeLocality(name)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%', padding:'10px', border:0, borderRadius:9, background:locality === name ? '#f7eee3' : 'transparent', color:'#30231e', textAlign:'left', fontSize:13, fontWeight:locality === name ? 800 : 500, cursor:'pointer' }}>{name}{locality === name && <span style={{ color:'#7c1d25' }}>✓</span>}</button>)}
+          </div>}
+        </div>
 
         {active === 'home' && <>
           <section className="hero">
