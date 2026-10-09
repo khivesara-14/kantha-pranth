@@ -19,6 +19,7 @@ export default function AuthGate({ children }) {
   const [parentsName, setParentsName] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
   const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function AuthGate({ children }) {
   async function submit(e) {
     e.preventDefault();
     setMessage('');
+    setEmailConfirmationRequired(false);
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail.includes('@')) {
@@ -101,7 +103,12 @@ export default function AuthGate({ children }) {
           });
 
       if (result.error) {
-        setMessage(result.error.message || 'Authentication failed.');
+        if (mode === 'login' && /email not confirmed/i.test(result.error.message || '')) {
+          setEmailConfirmationRequired(true);
+          setMessage('Please confirm your email address before signing in. Check your inbox and spam folder, or resend the confirmation email below.');
+        } else {
+          setMessage(result.error.message || 'Authentication failed.');
+        }
         return;
       }
 
@@ -123,6 +130,28 @@ export default function AuthGate({ children }) {
       setSession(result.data?.session || null);
     } catch (error) {
       setMessage(error?.message || 'Something went wrong while signing in.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendConfirmation() {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!supabase || !cleanEmail.includes('@')) {
+      setMessage('Enter the email address you used to register.');
+      return;
+    }
+    setBusy(true);
+    setMessage('');
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email: cleanEmail });
+      if (error) setMessage(error.message || 'Could not resend confirmation email.');
+      else {
+        setEmailConfirmationRequired(false);
+        setMessage('Confirmation email sent. Open the email and click the confirmation link, then return here to sign in.');
+      }
+    } catch (error) {
+      setMessage(error?.message || 'Could not resend confirmation email.');
     } finally {
       setBusy(false);
     }
@@ -278,6 +307,7 @@ export default function AuthGate({ children }) {
           )}
 
           {message && <div style={styles.message}>{message}</div>}
+          {emailConfirmationRequired && <button type="button" disabled={busy} onClick={resendConfirmation} style={styles.link}>{busy ? 'Sending…' : 'Resend confirmation email'}</button>}
 
           <button type="submit" disabled={busy} style={styles.primary}>
             {busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}
