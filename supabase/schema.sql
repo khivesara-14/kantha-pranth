@@ -13,18 +13,25 @@ create table if not exists public.localities (
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
-  phone text,
-  date_of_birth date,
-  marital_status text,
-  blood_group text,
-  mobile_number text,
-  occupation text,
-  highest_education text,
-  parents_name text,
   locality_id uuid references public.localities(id),
   avatar_url text,
   bio text,
   is_verified boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Sensitive registration details are stored separately and are never publicly readable.
+create table if not exists public.profile_private (
+  id uuid primary key references public.profiles(id) on delete cascade,
+  phone text,
+  mobile_number text,
+  date_of_birth date,
+  marital_status text,
+  blood_group text,
+  occupation text,
+  highest_education text,
+  parents_name text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -92,6 +99,7 @@ on conflict (name) do nothing;
 -- Enable Row Level Security on every public app table.
 alter table public.localities enable row level security;
 alter table public.profiles enable row level security;
+alter table public.profile_private enable row level security;
 alter table public.posts enable row level security;
 alter table public.businesses enable row level security;
 alter table public.listings enable row level security;
@@ -118,6 +126,24 @@ drop policy if exists "events are readable" on public.events;
 create policy "events are readable" on public.events for select to anon, authenticated using (true);
 
 -- Signed-in users can create/update only their own content.
+drop policy if exists "members read their own private profile" on public.profile_private;
+create policy "members read their own private profile"
+  on public.profile_private for select to authenticated using ((select auth.uid()) = id);
+
+drop policy if exists "members create their own private profile" on public.profile_private;
+create policy "members create their own private profile"
+  on public.profile_private for insert to authenticated with check ((select auth.uid()) = id);
+
+drop policy if exists "members update their own private profile" on public.profile_private;
+create policy "members update their own private profile"
+  on public.profile_private for update to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
+
+drop policy if exists "admins manage private profiles" on public.profile_private;
+create policy "admins manage private profiles"
+  on public.profile_private for all to authenticated
+  using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
 drop policy if exists "users create own profile" on public.profiles;
 create policy "users create own profile" on public.profiles for insert to authenticated with check ((select auth.uid()) = id);
 
