@@ -68,6 +68,11 @@ export default function Home() {
   const [showHelpForm, setShowHelpForm] = useState(false);
   const [helpCategory, setHelpCategory] = useState('Support request');
   const [helpBusy, setHelpBusy] = useState(false);
+  const [communityEvents, setCommunityEvents] = useState(events);
+  const [myEventIds, setMyEventIds] = useState([]);
+  const [eventFilter, setEventFilter] = useState('Upcoming');
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [eventBusy, setEventBusy] = useState(false);
   const [listings, setListings] = useState(initialListings);
   const [listingBusy, setListingBusy] = useState(false);
   const [showPost, setShowPost] = useState(false);
@@ -183,6 +188,105 @@ export default function Home() {
     }
     setSelectedMember({ ...profile, localityName });
     setMemberPosts((postRows || []).map(p => ({ ...p, author_id:userId, author:profile.full_name || 'Community Member', area:localityName, time:formatPostTime(p.created_at), text:p.body, avatar:initialsFromName(profile.full_name || 'Community Member'), image_url:p.image_url || '' })));
+  }
+
+  async function loadCommunityEvents() {
+    if (!supabase) return;
+    const { data: rows, error } = await supabase
+      .from('events')
+      .select('id, organizer_id, locality_id, title, description, starts_at, location, created_at')
+      .order('starts_at', { ascending: true })
+      .limit(100);
+    if (error) {
+      console.error('Could not load community events:', error.message);
+      return;
+    }
+    const list = rows || [];
+    if (!list.length) {
+      setCommunityEvents(events);
+      return;
+    }
+    const localityIds = [...new Set(list.map(x => x.locality_id).filter(Boolean))];
+    const { data: localityRows } = localityIds.length
+      ? await supabase.from('localities').select('id, name').in('id', localityIds)
+      : { data: [] };
+    const localityMap = new Map((localityRows || []).map(x => [x.id, x.name]));
+    setCommunityEvents(list.map(item => {
+      const date = new Date(item.starts_at);
+      return {
+        ...item,
+        date: date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+        time: date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }),
+        area: localityMap.get(item.locality_id) || item.location || 'Bengaluru',
+        tag: 'Community',
+        emoji: '🙏'
+      };
+    }));
+  }
+
+  async function loadMyEventRegistrations() {
+    if (!supabase || !currentUserId || guestMode) {
+      setMyEventIds([]);
+      return;
+    }
+    const { data, error } = await supabase.from('event_registrations').select('event_id').eq('user_id', currentUserId);
+    if (!error) setMyEventIds((data || []).map(x => x.event_id));
+  }
+
+  async function registerForEvent(event) {
+    if (!supabase || !authenticated || guestMode || !currentUserId) {
+      setShowLogin(true);
+      return setToast('Sign in to register your interest in this event');
+    }
+    if (typeof event?.id !== 'string') return setToast('This is a sample event. Registration will open when the organiser publishes it.');
+    if (myEventIds.includes(event.id)) {
+      const { error } = await supabase.from('event_registrations').delete().eq('event_id', event.id).eq('user_id', currentUserId);
+      if (error) return setToast(error.message || 'Could not cancel registration');
+      setMyEventIds(ids => ids.filter(id => id !== event.id));
+      return setToast('Your event registration was cancelled');
+    }
+    const { error } = await supabase.from('event_registrations').insert({ event_id: event.id, user_id: currentUserId });
+    if (error) return setToast(error.code === '23505' ? 'You are already registered for this event' : error.message || 'Could not register');
+    setMyEventIds(ids => [...ids, event.id]);
+    setToast('You are registered for this event');
+  }
+
+  async function createCommunityEvent(e) {
+    e.preventDefault();
+    if (!supabase || !authenticated || guestMode || !currentUserId || !isVerifiedUser) {
+      setShowEventForm(false);
+      return setToast('Only verified members can organise community events');
+    }
+    const fd = new FormData(e.currentTarget);
+    const title = fd.get('title')?.toString().trim() || '';
+    const description = fd.get('description')?.toString().trim() || '';
+    const date = fd.get('date')?.toString() || '';
+    const time = fd.get('time')?.toString() || '';
+    const place = fd.get('location')?.toString().trim() || '';
+    if (!title || !date || !time || !place) return setToast('Complete the event title, date, time, and venue');
+    const startsAt = new Date(`${date}T${time}`);
+    if (Number.isNaN(startsAt.getTime()) || startsAt <= new Date()) return setToast('Choose a future date and time');
+    setEventBusy(true);
+    try {
+      const { data: localityRow, error: localityError } = await supabase.from('localities').select('id').eq('name', locality).maybeSingle();
+      if (localityError || !localityRow) return setToast('Could not find your locality');
+      const { error } = await supabase.from('events').insert({
+        organizer_id: currentUserId,
+        locality_id: localityRow.id,
+        title,
+        description: description || null,
+        starts_at: startsAt.toISOString(),
+        location: place
+      });
+      if (error) return setToast(error.message || 'Could not publish event');
+      await loadCommunityEvents();
+      setShowEventForm(false);
+      setEventFilter('Upcoming');
+      setActive('events');
+      setToast('Your event is published to the community');
+    } finally {
+      setEventBusy(false);
+    }
   }
 
   async function loadHelpRequests() {
@@ -1245,7 +1349,7 @@ export default function Home() {
           <SectionHeader title="Latest updates" action="View all" onClick={() => setActive('community')} />
           {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} />)}
           <SectionHeader title="Coming up" action="All events" onClick={() => setActive('events')} />
-          <EventCard event={events[0]} onClick={() => setSelectedEvent(events[0])} />
+          <EventCard event={communityEvents[0] || events[0]} onClick={() => setSelectedEvent(communityEvents[0] || events[0])} />
         </>}
 
         {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋ Post</button>}><div className="search" style={{ marginTop:12 }}><span>⌕</span><input value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="Search community posts..." /></div><div className="filter-row" style={{ marginTop:10 }}>{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
@@ -1262,7 +1366,16 @@ export default function Home() {
 
         {active === 'services' && <Page title="Services" subtitle="Trusted people & businesses in your community"><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search doctors, CA, lawyers..." /></div><div className="service-grid">{['Doctors','CA','Lawyers','Education','Home Services','Travel','Catering','Other'].map(x => <button className="service-cat" key={x}><span>{x === 'Doctors' ? '🩺' : x === 'CA' ? '📊' : x === 'Lawyers' ? '⚖️' : x === 'Travel' ? '✈️' : '✦'}</span><b>{x}</b></button>)}</div><SectionHeader title="Featured services" action="See all" />{filteredServices.map(s => <ServiceCard key={s.name} service={s} onToast={setToast} />)}</Page>}
 
-        {active === 'events' && <Page title="Events" subtitle="Meet, celebrate and contribute"><div className="event-tabs"><Pill tone="active">Upcoming</Pill><Pill>My events</Pill><Pill>Past</Pill></div>{events.map(e => <EventCard key={e.id} event={e} onClick={() => setSelectedEvent(e)} />)}</Page>}
+        {active === 'events' && <Page title="Events" subtitle="Meet, celebrate, and connect with the community" action={isVerifiedUser && supabase ? <button className="primary small" onClick={() => setShowEventForm(true)}>＋ Create event</button> : null}>
+          <div className="event-tabs">{['Upcoming','My events','Past'].map(tab => <button key={tab} type="button" onClick={() => setEventFilter(tab)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={eventFilter === tab ? 'active' : ''}>{tab}</Pill></button>)}</div>
+          {communityEvents.filter(event => {
+            const eventTime = new Date(event.starts_at || (new Date().getFullYear() + ' ' + event.date)).getTime();
+            if (eventFilter === 'My events') return typeof event.id === 'string' && myEventIds.includes(event.id);
+            if (eventFilter === 'Past') return Number.isFinite(eventTime) && eventTime < Date.now();
+            return !Number.isFinite(eventTime) || eventTime >= Date.now();
+          }).map(e => <EventCard key={e.id} event={e} onClick={() => setSelectedEvent(e)} />)}
+          {!communityEvents.filter(event => eventFilter === 'My events' ? typeof event.id === 'string' && myEventIds.includes(event.id) : eventFilter === 'Past' ? new Date(event.starts_at || '2999-01-01').getTime() < Date.now() : new Date(event.starts_at || '2999-01-01').getTime() >= Date.now()).length && <div className="empty-state"><div>📅</div><h3>No events in this view</h3><p>{eventFilter === 'My events' ? 'Events you register for will appear here.' : 'Check back soon for community gatherings.'}</p></div>}
+        </Page>}
 
         {selectedPost && <Modal title="Community Post" close={() => { setSelectedPost(null); if (typeof window !== 'undefined' && window.location.search) window.history.replaceState({}, '', window.location.pathname); }}><PostCard post={selectedPost} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} onPostChanged={loadPosts} onProfile={openMemberProfile} /></Modal>}
 
@@ -1304,6 +1417,7 @@ export default function Home() {
       </form></Modal>}
 
       {showPost && <Modal title="Create a community post" close={() => { setShowPost(false); setPostPhotoPreview(''); }}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><label>Photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0]; setPostPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{postPhotoPreview && <img className="family-photo-preview" src={postPhotoPreview} alt="Post preview" />}<button className="primary full" disabled={postBusy || !isVerifiedUser}>{postBusy ? 'Publishing…' : !isVerifiedUser ? 'Verification required' : 'Publish post'}</button></form></Modal>}
+      {showEventForm && <Modal title="Create community event" close={() => setShowEventForm(false)}><form onSubmit={createCommunityEvent} className="form"><div className="info-banner"><b>Organiser locality: {locality}</b><p>Events are published under your account. Add clear venue and timing details.</p></div><label>Event title<input name="title" minLength={4} maxLength={120} placeholder="e.g. Jain youth networking evening" required /></label><label>Description<textarea name="description" rows={4} maxLength={2500} placeholder="What will happen at the event? Who is welcome?" /></label><div className="two-col"><label>Date<input name="date" type="date" min={new Date().toISOString().split('T')[0]} required /></label><label>Time<input name="time" type="time" required /></label></div><label>Venue / address<input name="location" maxLength={200} placeholder="Temple hall, community centre…" required /></label><button className="primary full" disabled={eventBusy}>{eventBusy ? 'Publishing…' : 'Publish event'}</button></form></Modal>}
       {showHelpForm && <Modal title="Community help request" close={() => setShowHelpForm(false)}><form onSubmit={submitHelpRequest} className="form"><div className="info-banner"><b>Locality: {locality}</b><p>Your request will be visible to signed-in members. Keep personal and contact details private.</p></div><label>Request type<select name="category" value={helpCategory} onChange={e => setHelpCategory(e.target.value)}>{['Blood requirement','Lost & found','Volunteer','Support request','Other'].map(x => <option key={x}>{x}</option>)}</select></label><label>Title<input name="title" minLength={4} maxLength={120} placeholder="Briefly describe what you need" required /></label><label>Details<textarea name="description" rows={4} minLength={10} maxLength={2500} placeholder="Explain how the community can help. Avoid sharing sensitive personal information." required /></label><button className="primary full" disabled={helpBusy}>{helpBusy ? 'Publishing…' : 'Publish help request'}</button></form></Modal>}
       {showListing && <Modal title="Sell something" close={() => setShowListing(false)}><form onSubmit={addListing} className="form"><div className="info-banner"><b>Reach your local community</b><p>Your listing will be visible in the marketplace while it is active. Never include sensitive personal information in the description.</p></div><label>Product name<input name="title" placeholder="e.g. Study table" minLength={3} maxLength={100} required /></label><label>Price (₹)<input name="price" type="number" inputMode="decimal" min="1" max="999999999" step="0.01" placeholder="2500" required /></label><label>Category<select name="category"><option>Furniture</option><option>Electronics</option><option>Books</option><option>Vehicles</option><option>Property</option><option>Business</option><option>Other</option></select></label><label>Condition<select name="condition"><option>New</option><option>Like new</option><option>Good condition</option><option>Used</option><option>For parts / repair</option></select></label><label>Description <span className="optional">(optional)</span><textarea name="description" rows="3" maxLength={1500} placeholder="Describe the item, pickup details, and anything buyers should know." /></label><button className="primary full" disabled={listingBusy}>{listingBusy ? 'Publishing…' : 'Publish listing'}</button></form></Modal>}
       {showFamilyForm && <Modal title="Add your family" close={() => { setShowFamilyForm(false); setFamilyPhotoPreview(''); }}><form onSubmit={createFamily} className="form"><div className="info-banner"><b>Privacy first</b><p>All contact details are optional. They are shown only when you choose “Show contact details”.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" onChange={e => { const file=e.target.files?.[0]; setFamilyPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{familyPhotoPreview && <img className="family-photo-preview" src={familyPhotoPreview} alt="Family preview" />}<label>Family name <span className="optional">(optional)</span><input name="family_name" placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue="community"><option value="community">Community members</option><option value="private">Private — only me</option></select></label><label>Family members<small className="field-help">One member per line. Example: Rajesh Jain — Father</small><textarea name="members" rows="5" placeholder="Rajesh Jain — Father&#10;Sunita Jain — Mother&#10;Aarav Jain — Son"></textarea></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Add family to directory'}</button></form></Modal>}
@@ -1353,7 +1467,7 @@ export default function Home() {
           </small>
         </form>
       </Modal>}
-      {selectedEvent && <Modal title={selectedEvent.title} close={() => setSelectedEvent(null)}><div className="detail-hero">{selectedEvent.emoji}</div><Pill>{selectedEvent.tag}</Pill><h2>{selectedEvent.date} · {selectedEvent.time}</h2><p>📍 {selectedEvent.area}, Bengaluru</p><p>Join the community for a meaningful evening of connection, learning and fellowship.</p><button className="primary full" onClick={() => { setSelectedEvent(null); setToast('You are marked as interested'); }}>Interested</button></Modal>}
+      {selectedEvent && <Modal title={selectedEvent.title} close={() => setSelectedEvent(null)}><div className="detail-hero">{selectedEvent.emoji || '🙏'}</div><Pill>{selectedEvent.tag || 'Community'}</Pill><h2>{selectedEvent.date} · {selectedEvent.time}</h2><p>📍 {selectedEvent.location || selectedEvent.area}, Bengaluru</p><p style={{ whiteSpace:'pre-wrap' }}>{selectedEvent.description || 'Join the community for a meaningful gathering and connect with fellow members.'}</p><button className="primary full" onClick={() => registerForEvent(selectedEvent)}>{myEventIds.includes(selectedEvent.id) ? 'Cancel registration' : 'Register / Interested'}</button></Modal>}
       {selectedListing && <Modal title={selectedListing.title} close={() => setSelectedListing(null)}>{selectedListing.image_url ? <img src={selectedListing.image_url} alt={selectedListing.title} style={{ width:'100%', maxHeight:300, objectFit:'cover', borderRadius:14 }} /> : <div className="detail-hero listing-detail">{selectedListing.emoji}</div>}<div className="price huge">{selectedListing.price}</div><p>📍 {selectedListing.area} · {selectedListing.condition || 'Condition not specified'}</p>{selectedListing.description && <p style={{ whiteSpace:'pre-wrap' }}>{selectedListing.description}</p>}<div className="info-banner"><b>{selectedListing.sellerName || 'Community Member'} {selectedListing.sellerVerified && <span className="verified">✓ Verified</span>}</b><p>Community marketplace listing · {selectedListing.created_at ? formatPostTime(selectedListing.created_at) : 'Recently added'}</p></div><button className="primary full" onClick={() => { const sellerId = selectedListing.seller_id; setSelectedListing(null); if (!sellerId) setToast('This demo listing has no seller account attached'); else startConversationWith(sellerId); }}>✉ Message seller</button></Modal>}
       {toast && <div className="toast">✓ {toast}</div>}
     </main>
