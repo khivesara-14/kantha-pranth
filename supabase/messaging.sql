@@ -45,12 +45,6 @@ create policy "members can start conversations"
     and member_one <> member_two
   );
 
-drop policy if exists "members can update their conversations" on public.conversations;
-create policy "members can update their conversations"
-  on public.conversations for update to authenticated
-  using ((select auth.uid()) = member_one or (select auth.uid()) = member_two)
-  with check ((select auth.uid()) = member_one or (select auth.uid()) = member_two);
-
 drop policy if exists "members can read messages in their conversations" on public.messages;
 create policy "members can read messages in their conversations"
   on public.messages for select to authenticated
@@ -91,6 +85,31 @@ create policy "members can mark received messages read"
         and ((select auth.uid()) = c.member_one or (select auth.uid()) = c.member_two)
     )
   );
+
+-- Recipients may mark messages as read, but message content and sender metadata are immutable.
+create or replace function public.protect_message_content()
+returns trigger
+language plpgsql
+set search_path = public
+as $
+begin
+  if new.conversation_id is distinct from old.conversation_id
+     or new.sender_id is distinct from old.sender_id
+     or new.body is distinct from old.body
+     or new.created_at is distinct from old.created_at then
+    raise exception 'Message content cannot be edited after sending';
+  end if;
+  if old.read_at is not null and new.read_at is distinct from old.read_at then
+    raise exception 'Read receipts cannot be reset';
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists messages_protect_content on public.messages;
+create trigger messages_protect_content
+before update on public.messages
+for each row execute function public.protect_message_content();
 
 create or replace function public.bump_conversation_updated_at()
 returns trigger
