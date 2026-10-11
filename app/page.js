@@ -1659,8 +1659,8 @@ export default function Home() {
           </small>
         </form>
       </Modal>}
-      {selectedEvent && <Modal title={selectedEvent.title} close={() => setSelectedEvent(null)}><div className="detail-hero">{selectedEvent.emoji || '🙏'}</div><Pill>{selectedEvent.tag || 'Community'}</Pill><h2>{selectedEvent.date} · {selectedEvent.time}</h2><p>📍 {selectedEvent.location || selectedEvent.area}, Bengaluru</p><p style={{ whiteSpace:'pre-wrap' }}>{selectedEvent.description || 'Join the community for a meaningful gathering and connect with fellow members.'}</p><button className="primary full" onClick={() => registerForEvent(selectedEvent)}>{myEventIds.includes(selectedEvent.id) ? 'Cancel registration' : 'Register / Interested'}</button></Modal>}
-      {selectedListing && <Modal title={selectedListing.title} close={() => setSelectedListing(null)}>{selectedListing.image_url ? <img src={selectedListing.image_url} alt={selectedListing.title} style={{ width:'100%', maxHeight:300, objectFit:'cover', borderRadius:14 }} /> : <div className="detail-hero listing-detail">{selectedListing.emoji}</div>}<div className="price huge">{selectedListing.price}</div><p>📍 {selectedListing.area} · {selectedListing.condition || 'Condition not specified'}</p>{selectedListing.description && <p style={{ whiteSpace:'pre-wrap' }}>{selectedListing.description}</p>}<div className="info-banner"><b>{selectedListing.sellerName || 'Community Member'} {selectedListing.sellerVerified && <span className="verified">✓ Verified</span>}</b><p>Community marketplace listing · {selectedListing.created_at ? formatPostTime(selectedListing.created_at) : 'Recently added'}</p></div>{selectedListing.seller_id === currentUserId && currentUserId ? <div style={{ display:'grid', gap:8 }}><button className="primary full" onClick={() => markListingSold(selectedListing)}>✓ Mark as sold</button><button className="outline full" onClick={() => removeListing(selectedListing)}>Remove listing</button></div> : <button className="primary full" onClick={() => { const sellerId = selectedListing.seller_id; setSelectedListing(null); if (!sellerId) setToast('This sample listing has no seller account attached'); else startConversationWith(sellerId); }}>✉ Message seller</button>}</Modal>}
+      {selectedEvent && <Modal title={selectedEvent.title} close={() => setSelectedEvent(null)}><div className="detail-hero">{selectedEvent.emoji || '🙏'}</div><Pill>{selectedEvent.tag || 'Community'}</Pill><h2>{selectedEvent.date} · {selectedEvent.time}</h2><p>📍 {selectedEvent.location || selectedEvent.area}, Bengaluru</p><p style={{ whiteSpace:'pre-wrap' }}>{selectedEvent.description || 'Join the community for a meaningful gathering and connect with fellow members.'}</p><button type="button" className="outline full" style={{ marginBottom:8 }} onClick={() => shareAppItem({ title:selectedEvent.title, text:`${selectedEvent.title} · ${selectedEvent.date} at ${selectedEvent.time} · ${selectedEvent.location || selectedEvent.area || 'Bengaluru'}`, queryKey:'event', id:selectedEvent.id, onToast:setToast })}>↗ Share event</button><button className="primary full" onClick={() => registerForEvent(selectedEvent)}>{myEventIds.includes(selectedEvent.id) ? 'Cancel registration' : 'Register / Interested'}</button></Modal>}
+      {selectedListing && <Modal title={selectedListing.title} close={() => setSelectedListing(null)}>{selectedListing.image_url ? <img src={selectedListing.image_url} alt={selectedListing.title} style={{ width:'100%', maxHeight:300, objectFit:'cover', borderRadius:14 }} /> : <div className="detail-hero listing-detail">{selectedListing.emoji}</div>}<div className="price huge">{selectedListing.price}</div><p>📍 {selectedListing.area} · {selectedListing.condition || 'Condition not specified'}</p>{selectedListing.description && <p style={{ whiteSpace:'pre-wrap' }}>{selectedListing.description}</p>}<div className="info-banner"><b>{selectedListing.sellerName || 'Community Member'} {selectedListing.sellerVerified && <span className="verified">✓ Verified</span>}</b><p>Community marketplace listing · {selectedListing.created_at ? formatPostTime(selectedListing.created_at) : 'Recently added'}</p></div><button type="button" className="outline full" style={{ marginBottom:8 }} onClick={() => shareAppItem({ title:selectedListing.title, text:`${selectedListing.title} — ${selectedListing.price} · ${selectedListing.area} · ${selectedListing.condition || 'Condition not specified'}${selectedListing.description ? ' · ' + selectedListing.description : ''}`, queryKey:'listing', id:selectedListing.id, onToast:setToast })}>↗ Share listing</button>{selectedListing.seller_id === currentUserId && currentUserId ? <div style={{ display:'grid', gap:8 }}><button className="primary full" onClick={() => markListingSold(selectedListing)}>✓ Mark as sold</button><button className="outline full" onClick={() => removeListing(selectedListing)}>Remove listing</button></div> : <button className="primary full" onClick={() => { const sellerId = selectedListing.seller_id; setSelectedListing(null); if (!sellerId) setToast('This sample listing has no seller account attached'); else startConversationWith(sellerId); }}>✉ Message seller</button>}</Modal>}
       {toast && <div className="toast">✓ {toast}</div>}
     </main>
   );
@@ -1672,6 +1672,24 @@ function eventTimestamp(event) {
   if (event?.starts_at) return new Date(event.starts_at).getTime();
   const parsed = new Date(`${event?.date || ''} ${new Date().getFullYear()}`);
   return parsed.getTime();
+}
+
+async function shareAppItem({ title, text, queryKey, id, onToast }) {
+  const url = new URL(window.location.href);
+  url.searchParams.set(queryKey, String(id));
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      await navigator.share({ title, text, url: url.toString() });
+      onToast?.('Share menu opened');
+    } else if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(`${text}\n${url.toString()}`);
+      onToast?.('Share text and link copied');
+    } else {
+      window.prompt('Copy this to share:', `${text}\n${url.toString()}`);
+    }
+  } catch (error) {
+    if (error?.name !== 'AbortError') onToast?.('Could not share. Please try again.');
+  }
 }
 
 function formatPostTime(value) {
