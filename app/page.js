@@ -178,10 +178,16 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('kp-demo', JSON.stringify({
-      locality, posts, listings, userName, profileLocality,
-      demoAuthenticated: authenticated
-    }));
+    // Storage can be unavailable (private browsing) or full. A persistence
+    // failure must never prevent the community page from rendering.
+    try {
+      localStorage.setItem('kp-demo', JSON.stringify({
+        locality, posts, listings, userName, profileLocality,
+        demoAuthenticated: authenticated
+      }));
+    } catch (error) {
+      console.warn('Could not persist Kantha Pranth demo state:', error);
+    }
   }, [locality, posts, listings, userName, profileLocality, authenticated]);
 
   async function openMemberProfile(userId) {
