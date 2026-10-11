@@ -1586,6 +1586,24 @@ export default function Home() {
           </section>
           <div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, services, events..." /></div>
           <div className="quick-grid">{quickActions.map(([label, icon]) => <button key={label} className="quick-card" onClick={() => setActive(label === 'Community' ? 'community' : label === 'Family' ? 'family' : label === 'Buy & Sell' ? 'marketplace' : label === 'Services' || label === 'Businesses' ? 'services' : label === 'Events' ? 'events' : 'help')}><span>{icon}</span><b>{label}</b></button>)}</div>
+          <section className="discover-section" aria-label="Explore Kantha Pranth">
+            <div className="section-head"><h2>Made for our community</h2><span className="discover-kicker">CONNECT · CELEBRATE · SUPPORT</span></div>
+            <div className="discover-strip">
+              <button type="button" className="discover-card" onClick={() => setActive('community')}>
+                <img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=640&q=80" alt="People spending time together" loading="lazy" />
+                <span className="discover-overlay"><small>CONNECT</small><b>Community</b><i>Meet your people ↗</i></span>
+              </button>
+              <button type="button" className="discover-card" onClick={() => setActive('events')}>
+                <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=640&q=80" alt="A beautifully arranged community gathering" loading="lazy" />
+                <span className="discover-overlay"><small>COME TOGETHER</small><b>Events</b><i>See what's coming ↗</i></span>
+              </button>
+              <button type="button" className="discover-card" onClick={() => setActive('services')}>
+                <img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=640&q=80" alt="A bright modern workspace" loading="lazy" />
+                <span className="discover-overlay"><small>SHOP LOCAL</small><b>Services</b><i>Discover nearby ↗</i></span>
+              </button>
+            </div>
+            <p className="image-note">Illustrative photography · Help our community grow by sharing updates, events and trusted local services.</p>
+          </section>
           <SectionHeader title="Latest updates" action="View all" onClick={() => setActive('community')} />
           {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onShareInApp={shareInAppItem} />)}
           <SectionHeader title="Coming up" action="All events" onClick={() => setActive('events')} />
