@@ -910,3 +910,35 @@ img{max-width:100%}
 .welcome-emblem img{display:block!important;width:88%!important;height:88%!important;object-fit:contain!important}
 .welcome-brand-lockup>img{display:block!important;flex:0 0 auto!important;width:58px!important;height:58px!important;object-fit:contain!important;border-radius:50%!important;background:#fff0d0!important;border:1px solid #d9b56f!important;padding:4px!important;box-shadow:0 7px 18px rgba(125,75,23,.08)!important}
 @media(max-width:760px){.auth-art-brand>img{width:42px!important;height:42px!important}.welcome-brand-lockup>img{width:48px!important;height:48px!important}}
+
+
+/* Reference-spec implementation: dedicated screen proportions and editorial treatment */
+.entry-splash{position:relative;isolation:isolate;overflow:hidden;min-height:100svh!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0!important;background:#4b0d16!important;background-image:linear-gradient(180deg,rgba(72,9,17,.14) 0%,rgba(75,11,18,.05) 40%,rgba(32,7,8,.72) 100%),url('https://images.unsplash.com/photo-1606293926075-69a00dbfri3?auto=format&fit=crop&w=1800&q=90')!important;background-size:cover!important;background-position:center 65%!important;color:#f8d88e!important}
+.entry-splash:before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(180deg,rgba(71,8,16,.68) 0%,rgba(87,13,20,.28) 42%,rgba(39,7,8,.55) 100%)}
+.entry-splash-mark{width:clamp(100px,15vw,160px)!important;height:clamp(100px,15vw,160px)!important;margin:0 auto 22px!important}
+.entry-splash h1{font-family:'Playfair Display',Georgia,serif!important;font-size:clamp(36px,6vw,62px)!important;color:#f7d68d!important;letter-spacing:-.025em!important;text-align:center!important}
+.entry-splash-kicker{font-size:10px!important;letter-spacing:.2em!important;color:#f4d28b!important}
+.entry-splash-caption{font-family:'Playfair Display',Georgia,serif!important;font-size:20px!important;color:#fff0d0!important}
+.entry-splash .entry-loader{position:absolute!important;bottom:34px!important;width:120px!important;height:2px!important;background:rgba(247,214,141,.22)!important}
+.entry-splash .entry-loader:after{background:#f5d184!important}
+.auth-welcome-page .welcome-art{background-image:linear-gradient(180deg,rgba(255,248,231,.06) 0%,rgba(255,248,231,.05) 36%,rgba(55,10,15,.52) 100%),url('https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1800&q=90')!important;background-position:center!important;background-size:cover!important}
+.auth-welcome-page .welcome-art-center h1{max-width:520px!important}
+.auth-welcome-page .welcome-feature-list>div>span{font-family:Arial,sans-serif!important}
+.auth-login-page .auth-entry-art{background-image:linear-gradient(90deg,rgba(79,14,20,.52),rgba(79,14,20,.12)),url('https://images.unsplash.com/photo-1606293926075-69a00dbfri3?auto=format&fit=crop&w=1800&q=90')!important;background-position:center!important}
+.auth-login-page .auth-entry-art:before{background:linear-gradient(180deg,rgba(55,9,15,.18),rgba(55,9,15,.75))!important}
+.auth-login-page .auth-entry-art:after{border-radius:3px!important}
+.auth-login-page .auth-form-wrap h1{font-size:clamp(32px,3.5vw,46px)!important;color:#35191a!important}
+.auth-login-page .auth-form-modern label{display:flex!important;flex-direction:column!important}
+.auth-login-page .auth-account-links button{color:#861b24!important}
+.auth-login-page .switch-auth button{color:#861b24!important}
+.auth-login-page .auth-divider{color:#927f6b!important}
+.auth-login-page .auth-divider:before,.auth-login-page .auth-divider:after{background:#ead9c4!important}
+@media(min-width:1000px){
+ .auth-welcome-page .auth-entry-layout{grid-template-columns:minmax(0,1fr) minmax(430px,.9fr)!important}
+ .auth-welcome-page .welcome-art{padding:clamp(44px,5vw,78px)!important}
+ .auth-welcome-page .welcome-panel{padding:clamp(42px,5vw,78px)!important}
+}
+@media(max-width:760px){
+ .entry-splash{background-position:center!important}
+ .auth-welcome-page .welcome-art{background-position:center 42%!important}
+}
