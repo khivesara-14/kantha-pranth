@@ -1525,7 +1525,15 @@ export default function Home() {
       if (item && String(selectedEvent?.id) !== eventId) setSelectedEvent(item);
     }
     if (postId) setActive('community');
-  }, [listings, communityEvents, selectedListing, selectedEvent]);
+  }, [listings, communityEvents, selectedListing, selectedEvent, posts]);
+
+  useEffect(() => {
+    if (active !== 'community' || typeof window === 'undefined') return;
+    const postId = new URLSearchParams(window.location.search).get('post');
+    if (!postId) return;
+    const target = document.getElementById('post-' + postId);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [active, posts]);
 
   if (!authChecked) return <AuthScreen loading />;
   if (!authenticated) return <AuthScreen
@@ -2125,7 +2133,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
     } catch (error) { if (error?.name !== 'AbortError') onToast('Could not share post'); }
   }
 
-  return <article className="post-card">
+  return <article className="post-card" id={typeof post.id === 'string' ? `post-${post.id}` : undefined}>
     <div className="post-top"><button type="button" onClick={() => post.author_id && onProfile?.(post.author_id)} style={{ display:'flex', alignItems:'center', gap:10, border:0, background:'transparent', padding:0, textAlign:'left', cursor:post.author_id ? 'pointer' : 'default' }}><Avatar initials={post.avatar} /><div className="post-author"><b>{post.author}</b><span>{post.time} · {post.area}</span></div></button><button className="more" onClick={() => setShowMenu(x => !x)}>•••</button></div>
     {showMenu && <div style={{ display:'flex', flexWrap:'wrap', gap:7, margin:'8px 0 10px', justifyContent:'flex-end' }}>
       {isOwnPost ? <><button className="soft-btn" onClick={() => { setEditing(true); setShowMenu(false); }}>✏️ Edit</button><button className="soft-btn" onClick={deletePost}>🗑️ Delete</button></> : <><button className="soft-btn" onClick={toggleSaved}>{saved ? '🔖 Saved' : '🔖 Save'}</button><button className="soft-btn" onClick={reportPost}>🚩 Report</button></>}
