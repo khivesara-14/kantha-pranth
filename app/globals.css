@@ -207,3 +207,141 @@ button:active{transform:scale(.985)}
 .bottom-nav button span{font-size:19px;line-height:1.2}
 .bottom-nav small{font-size:9px;white-space:nowrap;letter-spacing:-.015em}
 @media(max-width:370px){.bottom-nav small{font-size:8px}.bottom-nav button span{font-size:17px}}
+
+
+/* Mobile-first finishing pass: narrow phones, touch ergonomics and safe areas */
+html{width:100%;min-height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+body{width:100%;min-width:320px;min-height:100svh;overscroll-behavior-y:contain}
+button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
+button,a{touch-action:manipulation}
+.app{width:100%;max-width:100%;min-height:100svh;padding-bottom:calc(92px + env(safe-area-inset-bottom));overflow:clip}
+.topbar{position:sticky;top:0;min-height:64px;padding-top:calc(10px + env(safe-area-inset-top));padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right));}
+.brand-wrap{min-width:0;gap:8px}
+.brand-mark{width:36px;height:36px;border-radius:11px;font-size:19px}
+.brand{font-size:12px;letter-spacing:.065em}
+.brand-sub{font-size:9px}
+.top-actions{gap:7px}
+.icon-btn,.avatar.mini{width:40px;height:40px;min-width:40px}
+.content{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+.location-row{gap:8px;min-height:58px}
+.location-pill,.soft-btn{min-height:42px}
+.hero{min-height:176px;padding:19px 17px;border-radius:20px;gap:8px}
+.hero>div:first-child{min-width:0;max-width:calc(100% - 45px)}
+.hero h1{font-size:clamp(25px,7vw,31px);overflow-wrap:anywhere}
+.hero-copy{font-size:12px;line-height:1.55;margin-top:9px}
+.hero-symbol{font-size:42px;flex-shrink:0}
+.search{height:48px;border-radius:14px;margin:13px 0}
+.search input{font-size:16px;min-height:44px}
+.quick-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.quick-card{min-width:0;min-height:84px;padding:10px 4px;border-radius:15px}
+.quick-card span{width:34px;height:34px;font-size:17px}
+.quick-card b{font-size:10px;text-align:center;line-height:1.25;overflow-wrap:anywhere}
+.discover-section{margin-top:19px}
+.discover-section .section-head{align-items:flex-start;gap:8px}
+.discover-section .section-head h2{font-size:14px;line-height:1.35}
+.discover-kicker{max-width:125px;font-size:7px;line-height:1.5}
+.discover-strip{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-padding-left:2px;padding:1px 2px 9px;margin:0 -2px;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.discover-card{flex:0 0 68%;width:68%;height:158px;scroll-snap-align:start}
+.discover-card:last-child{margin-right:2px}
+.discover-overlay b{font-size:17px}
+.discover-overlay i{font-size:10px}
+.image-note{font-size:10px;line-height:1.5}
+.section-head{margin:20px 1px 10px;gap:8px}
+.section-head h2{font-size:15px;line-height:1.35}
+.section-head button{min-height:36px;white-space:nowrap}
+.page{padding-top:13px}
+.page-head{align-items:center;gap:8px;margin-bottom:14px}
+.page h1{font-size:clamp(24px,6vw,29px);line-height:1.12}
+.page-head>div{min-width:0}
+.page-head>div>p:last-child{font-size:11px;line-height:1.45}
+.primary,.outline{min-height:44px;padding:11px 13px}
+.primary.small{min-height:40px;padding:9px 11px;white-space:nowrap}
+.post-card{padding:14px;border-radius:17px;margin-bottom:10px}
+.post-top{gap:8px}
+.post-author b{font-size:12px;line-height:1.35}
+.post-author span{font-size:10px;line-height:1.35}
+.post-card h3{font-size:15px;line-height:1.4}
+.post-card>p{font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.post-actions{gap:5px}
+.post-actions button{min-height:38px;padding:7px 8px;font-size:11px}
+.filter-row,.category-scroll,.event-tabs{gap:8px;padding:2px 0 8px;margin-right:-2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.filter-row::-webkit-scrollbar,.category-scroll::-webkit-scrollbar,.event-tabs::-webkit-scrollbar{display:none}
+.filter-row button,.category-scroll button,.event-tabs button{flex:0 0 auto;min-height:36px}
+.listing-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.listing{min-width:0;border-radius:15px}
+.listing-img{height:clamp(112px,36vw,155px)}
+.listing-img img{border-radius:0!important}
+.listing-body{padding:10px}
+.listing-title{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.price{font-size:14px}
+.meta{font-size:10px;line-height:1.45;overflow-wrap:anywhere}
+.service-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.service-cat{min-width:0;min-height:78px;padding:9px 3px;border-radius:13px}
+.service-cat span{font-size:18px}
+.service-cat b{font-size:9px;line-height:1.25;text-align:center;overflow-wrap:anywhere}
+.service-card{gap:9px;padding:11px;border-radius:15px}
+.service-icon{width:40px;height:40px;flex-shrink:0}
+.service-info{min-width:0}
+.service-title{align-items:flex-start;flex-wrap:wrap}
+.service-title h3{white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.service-info p{font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+.service-info small{font-size:10px;line-height:1.4}
+.call{min-height:40px;min-width:48px;display:inline-flex;align-items:center;justify-content:center}
+.event-card{gap:9px;padding:11px;border-radius:16px}
+.event-date{width:42px;flex-shrink:0}
+.event-icon{width:40px;height:40px;flex-shrink:0}
+.event-info h3{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.event-info p{font-size:10px;line-height:1.45}
+.directory-banner{align-items:flex-start;padding:12px}
+.directory-banner p{font-size:11px;line-height:1.5}
+.family-card{padding:10px;gap:9px}
+.family-info h3{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.family-info p,.family-info small{font-size:10px;line-height:1.4}
+.help-grid{gap:8px}
+.help-card{padding:13px;border-radius:15px}
+.help-card span{font-size:24px;margin-bottom:11px}
+.help-card b{font-size:12px;line-height:1.4}
+.help-card small{font-size:10px;line-height:1.45}
+.form{gap:14px}
+.form label{font-size:12px;line-height:1.4}
+.form input,.form textarea,.form select{font-size:16px;min-height:48px;padding:12px;border-radius:12px}
+.form textarea{min-height:104px}
+.phone-field input{font-size:16px!important;min-height:48px}
+.bottom-nav{left:0;right:0;bottom:0;transform:none;width:100%;max-width:none;height:calc(68px + env(safe-area-inset-bottom));padding:5px max(4px,env(safe-area-inset-left)) calc(4px + env(safe-area-inset-bottom)) max(4px,env(safe-area-inset-right));border-radius:17px 17px 0 0;border-left:0;border-right:0;border-bottom:0;grid-template-columns:repeat(6,minmax(0,1fr));background:rgba(255,253,249,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.bottom-nav button{min-width:0;min-height:48px;gap:3px;padding:4px 0;border-radius:11px}
+.bottom-nav button span{font-size:19px}
+.bottom-nav small{font-size:9px;line-height:1.15;white-space:nowrap;letter-spacing:-.025em}
+.fab{left:auto;right:16px;bottom:calc(78px + env(safe-area-inset-bottom));transform:none;width:52px;height:52px;border-radius:17px;border:3px solid var(--cream);z-index:29}
+.toast{bottom:calc(78px + env(safe-area-inset-bottom));max-width:calc(100vw - 28px);white-space:normal;line-height:1.45}
+.modal-backdrop{align-items:flex-end;padding:0}
+.modal{width:100%;max-width:none;max-height:min(90svh,900px);padding:17px 16px calc(18px + env(safe-area-inset-bottom));border-radius:23px 23px 0 0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.modal-head{position:sticky;top:-17px;z-index:3;margin:-17px -16px 15px;padding:16px;background:rgba(255,253,249,.97);backdrop-filter:blur(14px);border-bottom:1px solid rgba(234,223,211,.7);border-radius:23px 23px 0 0}
+.modal-head h2{font-size:20px;line-height:1.25}
+.modal-head button{min-width:40px;min-height:40px;display:grid;place-items:center}
+.empty-state{padding:30px 16px}
+.empty-state p{font-size:12px;line-height:1.55}
+input,textarea,select{max-width:100%}
+img{max-width:100%}
+@media(max-width:360px){
+  .content{padding-left:11px;padding-right:11px}
+  .topbar{padding-left:11px;padding-right:11px}
+  .brand{font-size:11px}
+  .brand-sub{font-size:8px}
+  .hero{padding:16px 13px}
+  .hero h1{font-size:25px}
+  .hero-symbol{font-size:36px}
+  .discover-card{flex-basis:78%;width:78%;height:145px}
+  .quick-card{min-height:78px}
+  .service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bottom-nav small{font-size:8px;letter-spacing:-.04em}
+  .bottom-nav button span{font-size:18px}
+  .post-actions button{padding:6px}
+}
+@media(min-width:560px) and (max-width:759px){
+  .app{max-width:620px;margin:0 auto}
+  .discover-card{flex-basis:48%;width:48%;height:185px}
+  .listing-img{height:170px}
+}
+@media(hover:none){
+  .quick-card:hover,.service-cat:hover,.listing:hover{transform:none;box-shadow:0 4px 16px rgba(55,30,20,.035)}
+}
