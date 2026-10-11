@@ -1581,7 +1581,7 @@ export default function Home() {
 
         {active === 'home' && <>
           <section className="hero">
-            <div><p className="eyebrow">YOUR COMMUNITY, CLOSER</p><h1>Good evening,<br /><span>{userName || 'there'}</span> 👋</h1><p className="hero-copy">Discover what's happening around your Jain community in Bengaluru.</p></div>
+            <div><p className="eyebrow">YOUR COMMUNITY, CLOSER</p><h1>{new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'},<br /><span>{userName || 'there'}</span> 👋</h1><p className="hero-copy">Discover what's happening around your Jain community in Bengaluru.</p></div>
             <div className="hero-symbol">🙏</div>
           </section>
           <div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, services, events..." /></div>
@@ -1680,7 +1680,7 @@ export default function Home() {
       </section>
 
       <button className="fab" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋</button>
-      <nav className="bottom-nav">{nav.map(([id, icon, label]) => <button key={id} className={active === id ? 'selected' : ''} onClick={() => setActive(id)}><span>{icon}</span><small>{label}</small></button>)}</nav>
+      <nav className="bottom-nav" aria-label="Main navigation">{nav.map(([id, icon, label]) => <button type="button" key={id} className={active === id ? 'selected' : ''} aria-current={active === id ? 'page' : undefined} aria-label={label} onClick={() => { setActive(id); setNotificationOpen(false); }}><span aria-hidden="true">{icon}</span><small>{label}</small></button>)}</nav>
 
       {showEditProfile && <Modal title="Edit profile" close={() => setShowEditProfile(false)}><form onSubmit={saveEditableProfile} className="form">
         <label>Full name<input value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name:e.target.value})} required /></label>
