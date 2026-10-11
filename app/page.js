@@ -31,7 +31,7 @@ const events = [
 ];
 
 const quickActions = [
-  ['Community', '📰'], ['Family', '👨‍👩‍👧‍👦'], ['Events', '📅'], ['Buy & Sell', '🛒'], ['Services', '🛠️'], ['Help', '🆘'],
+  ['Community', '♧'], ['Family', '♙'], ['Events', '▦'], ['Buy & Sell', '▱'], ['Services', '⌂'], ['Help', '♡'],
 ];
 
 function Avatar({ initials, large = false }) { return <div className={`avatar ${large ? 'avatar-lg' : ''}`}>{initials}</div>; }
@@ -1852,9 +1852,9 @@ function AuthScreen({
         <section className="auth-entry-art" aria-label="Kantha Pranth community">
           <div className="auth-art-brand"><img src="/kantha-pranth-emblem.svg" alt="" /><b>KANTHA PRANTH</b></div>
           <div className="auth-art-copy">
-            <p>ROOTED IN COMMUNITY</p>
-            <h2>Your people.<br/>Your neighbourhood.<br/><em>Your community.</em></h2>
-            <span>Connect with Jain families, discover local services, and be part of what’s happening across Bengaluru.</span>
+            <p>FAITH · FAMILY · COMMUNITY</p>
+            <h2>Our people.<br/>Our heritage.<br/><em>Our community.</em></h2>
+            <span>Rooted in values. Growing together. A trusted place for Jain families to connect, celebrate and support one another across Bengaluru.</span>
           </div>
           <div className="auth-art-foot"><span>✦</span> CONNECT · SUPPORT · GROW</div>
         </section>
@@ -1862,9 +1862,9 @@ function AuthScreen({
           <button type="button" className="auth-back-link" onClick={() => setLoginOpen(false)}>← <span>Back to welcome</span></button>
           <div className="auth-form-wrap">
             <div className="auth-login-logo"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
-            <p className="auth-overline">{isSignup ? 'BECOME A MEMBER' : 'WELCOME BACK'}</p>
-            <h1>{isSignup ? 'Join your community' : 'Good to have you back.'}</h1>
-            <p className="auth-copy">{isSignup ? 'Create your account to connect with the Jain community in Bengaluru.' : 'Sign in to pick up where your community left off.'}</p>
+            <p className="auth-overline">{isSignup ? 'JAIN COMMUNITY · BENGALURU' : 'WELCOME BACK'}</p>
+            <h1>{isSignup ? 'Create your account' : 'Welcome back'}</h1>
+            <p className="auth-copy">{isSignup ? 'Join our growing community in just a few steps.' : 'Sign in to continue to your community.'}</p>
             <form className="auth-form-modern" onSubmit={submitAuth}>
               <label>Email address
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" placeholder="you@example.com" required />
@@ -1908,9 +1908,10 @@ function AuthScreen({
           <h2>Our people.<br/>Our heritage.<br/><em>Our community.</em></h2>
           <p className="welcome-description">Find familiar faces, local businesses, community events, and ways to help — all in one place.</p>
           <div className="welcome-feature-list">
-            <div><span>♧</span><p><b>Stay connected</b><small>Updates and conversations from your community</small></p></div>
-            <div><span>⌖</span><p><b>Discover locally</b><small>Families, services, and things happening nearby</small></p></div>
-            <div><span>♡</span><p><b>Support each other</b><small>Share help, opportunities, and everyday kindness</small></p></div>
+            <div><span>♧</span><p><b>Connect</b><small>Stay close to your community</small></p></div>
+            <div><span>▦</span><p><b>Events near you</b><small>Celebrate and take part together</small></p></div>
+            <div><span>⌂</span><p><b>Find services</b><small>Discover trusted local businesses</small></p></div>
+            <div><span>▱</span><p><b>Buy, sell and support</b><small>Share opportunities within the community</small></p></div>
           </div>
           <button className="primary full welcome-cta" onClick={() => { setAuthMode('login'); setLoginOpen(true); }}><span>Get started</span><span aria-hidden="true">→</span></button>
           <button className="guest-link" onClick={onGuest}>Explore as a guest <span aria-hidden="true">↗</span></button>
