@@ -1826,136 +1826,91 @@ function AuthScreen({
   onGuest,
 }) {
   if (loading) {
-    return <main className="auth-screen splash-auth"><div className="splash-logo">☀</div><div className="splash-name">KANTHA PRANTH</div><div className="splash-sub">Jain Community · Bengaluru</div></main>;
+    return <main className="entry-splash" aria-label="Opening Kantha Pranth">
+      <div className="entry-splash-mark">☀</div>
+      <p className="entry-splash-kicker">JAIN COMMUNITY · BENGALURU</p>
+      <h1>KANTHA PRANTH</h1>
+      <p className="entry-splash-caption">A little closer to home.</p>
+      <span className="entry-loader" aria-hidden="true" />
+    </main>;
   }
 
+  const isSignup = authMode === 'signup';
+  const submitAuth = (e) => {
+    e.preventDefault();
+    onSubmit(e);
+  };
+
   if (loginOpen) {
-    const submitAuth = (e) => {
-      e?.preventDefault?.();
-      onSubmit(e);
-    };
-
-    return <main
-      className="auth-screen"
-      style={{ minHeight: '100vh', background: '#f8f4ed', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-    >
-      <div
-        style={{ width: '100%', maxWidth: 430, background: '#fffdf9', borderRadius: 24, padding: '34px 24px', boxShadow: '0 20px 60px rgba(55,30,20,.12)', position: 'relative', zIndex: 9999 }}
-      >
-        <button
-          type="button"
-          onClick={() => setLoginOpen(false)}
-          style={{ position: 'absolute', top: 16, left: 16, width: 40, height: 40, borderRadius: 12, border: '1px solid #eadfd3', background: '#fff', fontSize: 24, cursor: 'pointer' }}
-        >‹</button>
-
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 20, margin: '0 auto 12px', background: 'linear-gradient(145deg,#e9c77f,#9a6a22)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 30 }}>🙏</div>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.14em', color: '#7c1d25' }}>KANTHA PRANTH</div>
-          <h1 style={{ fontFamily: 'Georgia, serif', color: '#241b18', fontSize: 28, margin: '7px 0' }}>
-            {authMode === 'signup' ? 'Create your account' : 'Welcome Back'}
-          </h1>
-          <p style={{ color: '#766b65', fontSize: 12, margin: 0 }}>
-            {authMode === 'signup' ? 'Join the Jain community of Bengaluru.' : 'Sign in to continue to your Jain community.'}
-          </p>
-        </div>
-
-        <div style={{ display: 'grid', gap: 14 }}>
-          <label style={{ display: 'grid', gap: 7, fontSize: 11, fontWeight: 700 }}>
-            Email address
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              autoComplete="email"
-              placeholder="you@example.com"
-              style={{ width: '100%', height: 50, boxSizing: 'border-box', border: '1px solid #ded1c3', borderRadius: 13, padding: '0 14px', fontSize: 14, background: '#fff' }}
-            />
-          </label>
-
-          <label style={{ display: 'grid', gap: 7, fontSize: 11, fontWeight: 700 }}>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
-              placeholder="Minimum 8 characters"
-              style={{ width: '100%', height: 50, boxSizing: 'border-box', border: '1px solid #ded1c3', borderRadius: 13, padding: '0 14px', fontSize: 14, background: '#fff' }}
-            />
-          </label>
-
-          {authMode === 'login' && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-              <button type="button" onClick={onResetPassword} disabled={authBusy} style={{ color: '#7c1d25', fontSize: 11, fontWeight: 800, background: 'none', border: 0, padding: 0, cursor: authBusy ? 'wait' : 'pointer' }}>
-                Forgot password?
-              </button>
-              <button type="button" onClick={onResendConfirmation} disabled={authBusy} style={{ color: '#7c1d25', fontSize: 11, fontWeight: 800, background: 'none', border: 0, padding: 0, cursor: authBusy ? 'wait' : 'pointer' }}>
-                Resend confirmation email
-              </button>
-            </div>
-          )}
-
-          {authFeedback && (
-            <div style={{ background: '#fff0ed', border: '1px solid #efc9c2', color: '#8e2926', borderRadius: 12, padding: 10, fontSize: 11 }}>
-              {authFeedback}
-            </div>
-          )}
-
-          <button
-            type="button"
-            disabled={authBusy}
-            onClick={submitAuth}
-            style={{ width: '100%', minHeight: 52, border: 0, borderRadius: 13, background: '#7c1d25', color: '#fff', fontSize: 14, fontWeight: 800, cursor: authBusy ? 'wait' : 'pointer', opacity: authBusy ? .65 : 1 }}
-          >
-            {authBusy ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setAuthFeedback(''); setAuthMode(authMode === 'signup' ? 'login' : 'signup'); }}
-            style={{ border: 0, background: 'none', color: '#7c1d25', fontSize: 11, cursor: 'pointer', padding: 8 }}
-          >
-            {authMode === 'signup' ? 'Already have an account? Sign in' : 'New to Kantha Pranth? Create an account'}
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 12px', color: '#a3978f', fontSize: 9 }}>
-          <span style={{ flex: 1, height: 1, background: '#eadfd3' }}></span><span>OR</span><span style={{ flex: 1, height: 1, background: '#eadfd3' }}></span>
-        </div>
-
-        <button
-          type="button"
-          onClick={onGuest}
-          style={{ width: '100%', minHeight: 48, border: '1px solid #eadfd3', borderRadius: 13, background: '#fff', color: '#241b18', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}
-        >
-          Continue as guest
-        </button>
-        <small style={{ display: 'block', textAlign: 'center', marginTop: 14, color: '#9a8e86', fontSize: 9 }}>
-          Free email login · No SMS required
-        </small>
+    return <main className="auth-entry-page auth-login-page">
+      <div className="auth-entry-layout">
+        <section className="auth-entry-art" aria-label="Kantha Pranth community">
+          <div className="auth-art-brand"><span>☀</span><b>KANTHA PRANTH</b></div>
+          <div className="auth-art-copy">
+            <p>ROOTED IN COMMUNITY</p>
+            <h2>Your people.<br/>Your neighbourhood.<br/><em>Your community.</em></h2>
+            <span>Connect with Jain families, discover local services, and be part of what’s happening across Bengaluru.</span>
+          </div>
+          <div className="auth-art-foot"><span>✦</span> CONNECT · SUPPORT · GROW</div>
+        </section>
+        <section className="auth-entry-panel">
+          <button type="button" className="auth-back-link" onClick={() => setLoginOpen(false)}>← <span>Back to welcome</span></button>
+          <div className="auth-form-wrap">
+            <div className="auth-login-logo">🙏</div>
+            <p className="auth-overline">{isSignup ? 'BECOME A MEMBER' : 'WELCOME BACK'}</p>
+            <h1>{isSignup ? 'Join your community' : 'Good to have you back.'}</h1>
+            <p className="auth-copy">{isSignup ? 'Create your account to connect with the Jain community in Bengaluru.' : 'Sign in to pick up where your community left off.'}</p>
+            <form className="auth-form-modern" onSubmit={submitAuth}>
+              <label>Email address
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" placeholder="you@example.com" required />
+              </label>
+              <label>Password
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={isSignup ? 'new-password' : 'current-password'} placeholder={isSignup ? 'At least 8 characters' : 'Enter your password'} minLength={isSignup ? 8 : undefined} required />
+              </label>
+              {!isSignup && <div className="auth-account-links">
+                <button type="button" onClick={onResetPassword} disabled={authBusy}>Forgot password?</button>
+                <button type="button" onClick={onResendConfirmation} disabled={authBusy}>Resend confirmation</button>
+              </div>}
+              {authFeedback && <div className="auth-feedback" role="status" aria-live="polite">{authFeedback}</div>}
+              <button className="primary full auth-main-btn" type="submit" disabled={authBusy}>{authBusy ? <><span className="button-spinner" /> Please wait…</> : isSignup ? 'Create my account' : 'Sign in to Kantha Pranth'} <span aria-hidden="true">→</span></button>
+            </form>
+            <p className="switch-auth">{isSignup ? 'Already a member?' : 'New to Kantha Pranth?'} <button type="button" onClick={() => { setAuthMode(isSignup ? 'login' : 'signup'); }}><b>{isSignup ? 'Sign in' : 'Create an account'}</b></button></p>
+            <div className="auth-divider"><span>OR</span></div>
+            <button type="button" className="guest-modern" onClick={onGuest}>Explore as a guest <span aria-hidden="true">→</span></button>
+            <p className="auth-privacy-note"><span>⌑</span> Your community starts with a secure sign-in.</p>
+          </div>
+        </section>
       </div>
     </main>;
   }
 
-  return <main className="auth-screen auth-welcome-screen">
-    <div className="auth-mobile-shell welcome-shell">
-      <div className="welcome-illustration"><div className="temple-line">☼</div><div className="temple-base">KANTHA<br/>PRANTH</div></div>
-      <div className="welcome-logo">☀</div>
-      <p className="eyebrow center">JAIN COMMUNITY · BENGALURU</p>
-      <h1>KANTHA PRANTH</h1>
-      <p className="welcome-tagline">A trusted platform for our Jain community</p>
-      <div className="welcome-points"><span>Connect</span><i>•</i><span>Support</span><i>•</i><span>Grow</span></div>
-      <div className="welcome-feature-grid">
-        <div><span>👥</span><b>Connect</b><small>with members</small></div>
-        <div><span>⌕</span><b>Discover</b><small>local services</small></div>
-        <div><span>🛒</span><b>Buy & Sell</b><small>within community</small></div>
-        <div><span>📅</span><b>Events</b><small>stay updated</small></div>
-        <div><span>📍</span><b>Local</b><small>information</small></div>
-        <div><span>♥</span><b>Support</b><small>each other</small></div>
-      </div>
-      <button className="primary full welcome-cta" onClick={() => { setAuthMode('login'); setAuthFeedback(''); setLoginOpen(true); }}>Get Started</button>
-      <button className="guest-link" onClick={onGuest}>Continue as guest</button>
-      <small className="welcome-foot">Built for the Jain Community of Bengaluru</small>
+  return <main className="auth-entry-page auth-welcome-page">
+    <div className="auth-entry-layout">
+      <section className="auth-entry-art welcome-art" aria-label="Welcome to Kantha Pranth">
+        <div className="auth-art-brand"><span>☀</span><b>KANTHA PRANTH</b></div>
+        <div className="welcome-art-center">
+          <div className="welcome-emblem">🙏</div>
+          <p>ONE COMMUNITY. MANY CONNECTIONS.</p>
+          <h1>Belonging begins<br/>right <em>here.</em></h1>
+          <span>A trusted space for Jain families and neighbours across Bengaluru to connect, discover, and support one another.</span>
+        </div>
+        <div className="welcome-art-foot"><span>⌖</span> MADE FOR BENGALURU’S JAIN COMMUNITY</div>
+      </section>
+      <section className="auth-entry-panel welcome-panel">
+        <div className="welcome-content">
+          <p className="auth-overline">NAMASTE & WELCOME</p>
+          <h2>Come closer to<br/>your community.</h2>
+          <p className="welcome-description">Find familiar faces, local businesses, community events, and ways to help — all in one place.</p>
+          <div className="welcome-feature-list">
+            <div><span>♧</span><p><b>Stay connected</b><small>Updates and conversations from your community</small></p></div>
+            <div><span>⌖</span><p><b>Discover locally</b><small>Families, services, and things happening nearby</small></p></div>
+            <div><span>♡</span><p><b>Support each other</b><small>Share help, opportunities, and everyday kindness</small></p></div>
+          </div>
+          <button className="primary full welcome-cta" onClick={() => { setAuthMode('login'); setLoginOpen(true); }}><span>Get started</span><span aria-hidden="true">→</span></button>
+          <button className="guest-link" onClick={onGuest}>Explore as a guest <span aria-hidden="true">↗</span></button>
+          <p className="welcome-foot"><span>✦</span> A trusted platform for our Jain community</p>
+        </div>
+      </section>
     </div>
   </main>;
 }
