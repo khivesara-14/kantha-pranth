@@ -1254,6 +1254,22 @@ export default function Home() {
     }
   }
 
+  async function resendConfirmationEmail() {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) return setAuthFeedback('Enter your email address first.');
+    if (!supabase) return setAuthFeedback('Email confirmation is available when Supabase is connected.');
+    setAuthBusy(true);
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email: cleanEmail });
+      setAuthBusy(false);
+      if (error) return setAuthFeedback(error.message || 'Could not resend the confirmation email.');
+      setAuthFeedback('If this account still needs confirmation, a new confirmation email has been sent. Check your inbox and spam folder.');
+    } catch (error) {
+      setAuthBusy(false);
+      setAuthFeedback(error?.message || 'Could not resend the confirmation email. Please try again.');
+    }
+  }
+
   async function resetPassword() {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
@@ -1526,6 +1542,7 @@ export default function Home() {
     authFeedback={authFeedback}
     onSubmit={handleEmailAuth}
     onResetPassword={resetPassword}
+    onResendConfirmation={resendConfirmationEmail}
     onGuest={continueAsGuest}
   />;
 
@@ -1779,6 +1796,7 @@ function AuthScreen({
   authFeedback,
   onSubmit,
   onResetPassword,
+  onResendConfirmation,
   onGuest,
 }) {
   if (loading) {
@@ -1841,9 +1859,14 @@ function AuthScreen({
           </label>
 
           {authMode === 'login' && (
-            <button type="button" onClick={onResetPassword} disabled={authBusy} style={{ justifySelf: 'end', color: '#7c1d25', fontSize: 11, fontWeight: 800, background: 'none', border: 0, cursor: 'pointer' }}>
-              Forgot password?
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <button type="button" onClick={onResetPassword} disabled={authBusy} style={{ color: '#7c1d25', fontSize: 11, fontWeight: 800, background: 'none', border: 0, padding: 0, cursor: authBusy ? 'wait' : 'pointer' }}>
+                Forgot password?
+              </button>
+              <button type="button" onClick={onResendConfirmation} disabled={authBusy} style={{ color: '#7c1d25', fontSize: 11, fontWeight: 800, background: 'none', border: 0, padding: 0, cursor: authBusy ? 'wait' : 'pointer' }}>
+                Resend confirmation email
+              </button>
+            </div>
           )}
 
           {authFeedback && (
