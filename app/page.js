@@ -1571,7 +1571,7 @@ export default function Home() {
     <main className="app">
       <header className="topbar">
         <div className="brand-wrap">
-          <div className="brand-mark">☀</div>
+          <div className="brand-mark"><img src="/kantha-pranth-emblem.svg" alt="" /></div>
           <div><div className="brand">KANTHA PRANTH</div><div className="brand-sub">Jain Community · Bengaluru</div></div>
         </div>
         <div className="top-actions" style={{ position:'relative' }}><button type="button" className="icon-btn" aria-label="Notifications" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen(x => !x); loadNotifications(); if (!notificationOpen) markNotificationsRead(); }}>♧{unreadNotifications > 0 && <span style={{ position:'absolute', top:0, right:32, minWidth:16, height:16, borderRadius:99, background:'#7c1d25', color:'#fff', fontSize:9, display:'grid', placeItems:'center', padding:'0 3px' }}>{unreadNotifications}</span>}</button><button type="button" className="avatar mini" aria-label="Open profile" onClick={() => setActive('profile')}>{initialsFromName(userName || 'Guest')}</button>{notificationOpen && <div style={{ position:'absolute', right:0, top:48, width:300, maxWidth:'calc(100vw - 32px)', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:16, padding:12, boxShadow:'0 16px 40px rgba(55,30,20,.15)', zIndex:50 }}><div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}><b>Notifications</b><button className="text-btn" onClick={markNotificationsRead}>Mark all read</button></div>{notifications.length ? notifications.map(n => <button key={n.id} type="button" onClick={() => { const match = posts.find(p => String(p.id) === String(n.post_id)); if (match) { setActive('community'); setSelectedPost(match); setNotificationOpen(false); } }} style={{ width:'100%', textAlign:'left', padding:'10px 4px', border:0, borderTop:'1px solid #f0e7df', background:'transparent', cursor:n.post_id ? 'pointer' : 'default', fontSize:12 }}>{n.message}<small style={{ display:'block', color:'#9a8e86', marginTop:3 }}>{formatPostTime(n.created_at)}</small></button>) : <small style={{ color:'#8c8179' }}>No notifications yet.</small>}</div>}</div>
@@ -1832,7 +1832,7 @@ function AuthScreen({
 }) {
   if (loading) {
     return <main className="entry-splash" aria-label="Opening Kantha Pranth">
-      <div className="entry-splash-mark">☀</div>
+      <div className="entry-splash-mark"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
       <p className="entry-splash-kicker">JAIN COMMUNITY · BENGALURU</p>
       <h1>KANTHA PRANTH</h1>
       <p className="entry-splash-caption">A little closer to home.</p>
@@ -1850,7 +1850,7 @@ function AuthScreen({
     return <main className="auth-entry-page auth-login-page">
       <div className="auth-entry-layout">
         <section className="auth-entry-art" aria-label="Kantha Pranth community">
-          <div className="auth-art-brand"><span>☀</span><b>KANTHA PRANTH</b></div>
+          <div className="auth-art-brand"><img src="/kantha-pranth-emblem.svg" alt="" /><b>KANTHA PRANTH</b></div>
           <div className="auth-art-copy">
             <p>ROOTED IN COMMUNITY</p>
             <h2>Your people.<br/>Your neighbourhood.<br/><em>Your community.</em></h2>
@@ -1861,7 +1861,7 @@ function AuthScreen({
         <section className="auth-entry-panel">
           <button type="button" className="auth-back-link" onClick={() => setLoginOpen(false)}>← <span>Back to welcome</span></button>
           <div className="auth-form-wrap">
-            <div className="auth-login-logo">🙏</div>
+            <div className="auth-login-logo"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
             <p className="auth-overline">{isSignup ? 'BECOME A MEMBER' : 'WELCOME BACK'}</p>
             <h1>{isSignup ? 'Join your community' : 'Good to have you back.'}</h1>
             <p className="auth-copy">{isSignup ? 'Create your account to connect with the Jain community in Bengaluru.' : 'Sign in to pick up where your community left off.'}</p>
@@ -1894,7 +1894,7 @@ function AuthScreen({
       <section className="auth-entry-art welcome-art" aria-label="Welcome to Kantha Pranth">
         <div className="auth-art-brand"><span>☀</span><b>KANTHA PRANTH</b></div>
         <div className="welcome-art-center">
-          <div className="welcome-emblem">☼</div>
+          <div className="welcome-emblem"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
           <p>ONE COMMUNITY. MANY CONNECTIONS.</p>
           <h1>A stronger community<br/>for <em>generations.</em></h1>
           <span>A beautiful, trusted space for Jain families across Bengaluru to connect, celebrate our heritage, and support one another.</span>
@@ -1903,7 +1903,7 @@ function AuthScreen({
       </section>
       <section className="auth-entry-panel welcome-panel">
         <div className="welcome-content">
-          <div className="welcome-brand-lockup"><span>☼</span><div><b>Kantha Pranth</b><small>JAIN COMMUNITY · BENGALURU</small></div></div>
+          <div className="welcome-brand-lockup"><img src="/kantha-pranth-emblem.svg" alt="" /><div><b>Kantha Pranth</b><small>JAIN COMMUNITY · BENGALURU</small></div></div>
           <p className="auth-overline">NAMASTE & WELCOME</p>
           <h2>Our people.<br/>Our heritage.<br/><em>Our community.</em></h2>
           <p className="welcome-description">Find familiar faces, local businesses, community events, and ways to help — all in one place.</p>
