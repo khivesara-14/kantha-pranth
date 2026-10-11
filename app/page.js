@@ -1478,6 +1478,23 @@ export default function Home() {
     onGuest={continueAsGuest}
   />;
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const listingId = params.get('listing');
+    const eventId = params.get('event');
+    const postId = params.get('post');
+    if (listingId) {
+      const item = listings.find(entry => String(entry.id) === listingId);
+      if (item && String(selectedListing?.id) !== listingId) setSelectedListing(item);
+    }
+    if (eventId) {
+      const item = communityEvents.find(entry => String(entry.id) === eventId);
+      if (item && String(selectedEvent?.id) !== eventId) setSelectedEvent(item);
+    }
+    if (postId) setActive('community');
+  }, [listings, communityEvents, selectedListing, selectedEvent]);
+
   if (needsProfile) {
     return <ProfileSetupScreen
       userName={userName}
