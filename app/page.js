@@ -62,6 +62,7 @@ export default function Home() {
   const [activeConversation, setActiveConversation] = useState(null);
   const [threadMessages, setThreadMessages] = useState([]);
   const [messageDraft, setMessageDraft] = useState('');
+  const [pendingShareMessage, setPendingShareMessage] = useState('');
   const [messageBusy, setMessageBusy] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [showMessageMemberPicker, setShowMessageMemberPicker] = useState(false);
@@ -561,6 +562,19 @@ export default function Home() {
     }
   }
 
+  function shareInAppItem({ title, text, queryKey, id }) {
+    if (!supabase || !authenticated || guestMode || !currentUserId) {
+      setShowLogin(true);
+      setToast('Sign in to share with community members');
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set(queryKey, String(id));
+    setPendingShareMessage('🙏 Sharing from Kantha Pranth: ' + title + '\n' + text + '\nOpen in the app: ' + url.toString());
+    setActive('messages');
+    openMessageMemberPicker();
+  }
+
   async function openMessageMemberPicker() {
     if (!supabase || !authenticated || guestMode || !currentUserId) {
       setShowLogin(true);
@@ -585,7 +599,7 @@ export default function Home() {
     setMessageMembers(data || []);
   }
 
-  async function startConversationWith(otherUserId) {
+  async function startConversationWith(otherUserId, initialDraft = '') {
     if (!supabase || !authenticated || guestMode || !currentUserId) {
       setShowLogin(true);
       setToast('Sign in with your account to send private messages');
@@ -622,6 +636,7 @@ export default function Home() {
     const prepared = { ...conversation, otherId: otherUserId, otherName: other?.full_name || 'Community Member', otherAvatar: other?.avatar_url || '', otherVerified: !!other?.is_verified };
     setActiveConversation(prepared);
     setActive('messages');
+    if (initialDraft) setMessageDraft(initialDraft);
     await loadThreadMessages(prepared.id);
     await loadConversations();
   }
@@ -1555,12 +1570,12 @@ export default function Home() {
           <div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, services, events..." /></div>
           <div className="quick-grid">{quickActions.map(([label, icon]) => <button key={label} className="quick-card" onClick={() => setActive(label === 'Community' ? 'community' : label === 'Family' ? 'family' : label === 'Buy & Sell' ? 'marketplace' : label === 'Services' || label === 'Businesses' ? 'services' : label === 'Events' ? 'events' : 'help')}><span>{icon}</span><b>{label}</b></button>)}</div>
           <SectionHeader title="Latest updates" action="View all" onClick={() => setActive('community')} />
-          {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} />)}
+          {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onShareInApp={shareInAppItem} />)}
           <SectionHeader title="Coming up" action="All events" onClick={() => setActive('events')} />
           <EventCard event={communityEvents[0] || events[0]} onClick={() => setSelectedEvent(communityEvents[0] || events[0])} />
         </>}
 
-        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋ Post</button>}><div className="search" style={{ marginTop:12 }}><span>⌕</span><input value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="Search community posts..." /></div><div className="filter-row" style={{ marginTop:10 }}>{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
+        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋ Post</button>}><div className="search" style={{ marginTop:12 }}><span>⌕</span><input value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="Search community posts..." /></div><div className="filter-row" style={{ marginTop:10 }}>{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onPostChanged={loadPosts} onProfile={openMemberProfile} onShareInApp={shareInAppItem} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
 
         {active === 'family' && <Page title="Family Directory" subtitle="Connect with Jain families in your community" action={authenticated && !guestMode && supabase ? <button className="primary small" onClick={() => setShowFamilyForm(true)}>＋ Add family</button> : null}>
           <div className="directory-banner"><div className="directory-icon">👨‍👩‍👧‍👦</div><div><b>A community family directory</b><p>Choose what your family shares. Phone numbers and private details are never displayed by default.</p></div></div>
@@ -1609,7 +1624,7 @@ export default function Home() {
             <input value={messageMemberSearch} onChange={e => setMessageMemberSearch(e.target.value)} placeholder="Search members by name…" style={{ width:'100%', marginBottom:10 }} />
             {messageMembersLoading ? <div className="info-banner">Loading community members…</div> : (() => {
               const matchingMembers = messageMembers.filter(member => (member.full_name || 'Community Member').toLowerCase().includes(messageMemberSearch.trim().toLowerCase()));
-              return matchingMembers.length ? <div style={{ display:'grid', gap:7, maxHeight:300, overflowY:'auto' }}>{matchingMembers.map(member => <button type="button" key={member.id} onClick={() => { setShowMessageMemberPicker(false); startConversationWith(member.id); }} style={{ display:'flex', alignItems:'center', gap:10, textAlign:'left', padding:10, border:'1px solid #eadfd3', borderRadius:12, background:'#fff', cursor:'pointer' }}><Avatar initials={initialsFromName(member.full_name || 'Community Member')} /><span style={{ flex:1 }}><b>{member.full_name || 'Community Member'}</b>{member.is_verified && <span className="verified"> ✓ Verified</span>}</span><span className="chevron">›</span></button>)}</div> : <div className="empty-state"><div>🔎</div><h3>No members found</h3><p>{messageMembers.length ? 'Try a different name.' : 'No other member profiles are available yet.'}</p></div>;
+              return matchingMembers.length ? <div style={{ display:'grid', gap:7, maxHeight:300, overflowY:'auto' }}>{matchingMembers.map(member => <button type="button" key={member.id} onClick={() => { setShowMessageMemberPicker(false); startConversationWith(member.id, pendingShareMessage); setPendingShareMessage(''); }} style={{ display:'flex', alignItems:'center', gap:10, textAlign:'left', padding:10, border:'1px solid #eadfd3', borderRadius:12, background:'#fff', cursor:'pointer' }}><Avatar initials={initialsFromName(member.full_name || 'Community Member')} /><span style={{ flex:1 }}><b>{member.full_name || 'Community Member'}</b>{member.is_verified && <span className="verified"> ✓ Verified</span>}</span><span className="chevron">›</span></button>)}</div> : <div className="empty-state"><div>🔎</div><h3>No members found</h3><p>{messageMembers.length ? 'Try a different name.' : 'No other member profiles are available yet.'}</p></div>;
             })()}
           </div>}
           {(!authenticated || guestMode || !supabase) ? <div className="info-banner"><b>Private messaging</b><p>Sign in with a registered account to start and receive private messages.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in</button></div> : activeConversation ? <div style={{ display:'grid', gap:12 }}>
@@ -1929,7 +1944,7 @@ function ProfileSetupScreen({ userName, setUserName, profileLocality, setProfile
 
 function Page({ title, subtitle, action, children }) { return <div className="page"><div className="page-head"><div><p className="eyebrow">KANTHA PRANTH</p><h1>{title}</h1><p>{subtitle}</p></div>{action}</div>{children}</div>; }
 function SectionHeader({ title, action, onClick }) { return <div className="section-head"><h2>{title}</h2>{action && <button onClick={onClick}>{action} ›</button>}</div>; }
-function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVerifiedUser, onPostChanged, onProfile }) {
+function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVerifiedUser, onPostChanged, onProfile, onShareInApp }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [commentCount, setCommentCount] = useState(post.comments || 0);
@@ -2085,7 +2100,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
     <div className="post-actions">
       <button disabled={busy} onClick={toggleLike}>{liked ? '♥' : '♡'} {likeCount}</button>
       <button onClick={openComments}>◌ {commentCount}</button>
-      <button onClick={sharePost}>↗ Share</button>
+      <button onClick={sharePost}>↗ Share</button><button onClick={() => onShareInApp?.({ title:post.title || 'Community post', text:post.text || '', queryKey:'post', id:post.id })}>✉ Send</button>
       <button onClick={toggleSaved}>{saved ? '🔖' : '＋'} {saved ? 'Saved' : 'Save'}</button>
       {!isOwnPost && <button onClick={reportPost} style={{ color:'#9b2c2c' }}>🚩 Report</button>}
     </div>
