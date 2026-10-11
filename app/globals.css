@@ -797,3 +797,37 @@ img{max-width:100%}
  .auth-welcome-page .welcome-brand-lockup{margin-bottom:25px!important;padding-bottom:17px!important}
  .auth-welcome-page .welcome-content h2{font-size:37px!important}
 }
+
+
+/* Reference-matched heritage home banner and app-wide premium rhythm */
+.heritage-home-banner{width:100%;height:clamp(210px,29vw,320px);position:relative;display:block;text-align:left;overflow:hidden;border-radius:20px;margin:4px 0 20px;background:#310d12;box-shadow:0 12px 28px rgba(60,20,15,.16);isolation:isolate}
+.heritage-home-banner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 48%;transition:transform .6s ease;z-index:-2}
+.heritage-home-banner:hover img{transform:scale(1.035)}
+.heritage-home-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(15,17,17,.9) 0%,rgba(19,18,16,.72) 38%,rgba(26,14,10,.08) 100%),linear-gradient(0deg,rgba(20,10,8,.25),transparent 55%)}
+.heritage-home-copy{position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:clamp(22px,4vw,42px);color:#fff4d9;gap:12px}
+.heritage-home-copy small{font-size:10px;font-weight:800;letter-spacing:.19em;color:#f1ce83}
+.heritage-home-copy strong{font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,4vw,43px);line-height:1.05;letter-spacing:-.03em;font-weight:600}
+.heritage-home-copy strong em{font-style:normal;color:#edc679}
+.heritage-home-copy i{font-size:12px;font-style:normal;color:#fff5e6;border-bottom:1px solid rgba(240,203,129,.65);padding-bottom:7px}
+.heritage-home-copy i b{color:#edc679;margin-left:8px}
+.entry-splash{background:linear-gradient(0deg,rgba(49,8,13,.94),rgba(49,8,13,.38)),url('https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1800&q=90') center/cover!important}
+.entry-splash h1{font-family:'Playfair Display',Georgia,serif!important;letter-spacing:.03em!important}
+.auth-entry-art{background-image:linear-gradient(180deg,rgba(45,7,12,.22),rgba(45,7,12,.82)),url('https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1800&q=90')!important;background-position:center!important;background-size:cover!important}
+@media(min-width:1000px){
+ .app{max-width:1120px!important;padding-bottom:35px!important}
+ .topbar{padding:18px 34px!important}
+ .page{padding-left:34px!important;padding-right:34px!important}
+ .hero{padding:28px 0 18px!important}
+ .quick-grid{gap:14px!important}
+ .quick-card{min-height:102px!important;border-radius:18px!important}
+ .heritage-home-banner{height:290px!important}
+ .discover-strip{gap:16px!important}
+ .discover-card{min-height:190px!important}
+}
+@media(max-width:600px){
+ .heritage-home-banner{height:220px;border-radius:16px;margin:0 0 17px}
+ .heritage-home-copy{padding:22px;gap:10px}
+ .heritage-home-copy strong{font-size:32px}
+ .heritage-home-copy small{font-size:9px;letter-spacing:.14em}
+}
+@media(prefers-reduced-motion:reduce){.heritage-home-banner img{transition:none}}
