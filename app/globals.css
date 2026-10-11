@@ -896,3 +896,17 @@ img{max-width:100%}
  .auth-login-page .auth-entry-panel{padding:28px 23px!important}
 }
 @media(prefers-reduced-motion:reduce){.heritage-home-banner img{transition:none!important}}
+
+
+/* One consistent emblem asset across all Kantha Pranth entry points */
+.entry-splash-mark{display:grid!important;place-items:center!important}
+.entry-splash-mark img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;filter:drop-shadow(0 8px 20px rgba(224,177,88,.2))}
+.brand-mark{display:grid!important;place-items:center!important;padding:5px!important;background:linear-gradient(145deg,#fff0ce,#d2a052)!important}
+.brand-mark img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}
+.auth-art-brand>img{display:block!important;width:48px!important;height:48px!important;object-fit:contain!important;border:1px solid rgba(245,211,144,.8)!important;border-radius:50%!important;background:rgba(85,14,22,.52)!important;padding:4px!important}
+.auth-login-logo{display:grid!important;place-items:center!important}
+.auth-login-logo img{display:block!important;width:78%!important;height:78%!important;object-fit:contain!important}
+.welcome-emblem{display:grid!important;place-items:center!important}
+.welcome-emblem img{display:block!important;width:88%!important;height:88%!important;object-fit:contain!important}
+.welcome-brand-lockup>img{display:block!important;flex:0 0 auto!important;width:58px!important;height:58px!important;object-fit:contain!important;border-radius:50%!important;background:#fff0d0!important;border:1px solid #d9b56f!important;padding:4px!important;box-shadow:0 7px 18px rgba(125,75,23,.08)!important}
+@media(max-width:760px){.auth-art-brand>img{width:42px!important;height:42px!important}.welcome-brand-lockup>img{width:48px!important;height:48px!important}}
