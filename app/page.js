@@ -1593,7 +1593,7 @@ export default function Home() {
             <div className="hero-symbol">🙏</div>
           </section>
           <button type="button" className="heritage-home-banner" onClick={() => setActive('community')} aria-label="Explore our Jain community">
-            <img src="https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1400&q=90" alt="Ornate Indian temple architecture at golden hour" />
+            <img src="https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg" alt="Ornate Indian temple architecture at golden hour" />
             <span className="heritage-home-shade" />
             <span className="heritage-home-copy"><small>FAITH · FAMILY · COMMUNITY</small><strong>Our people.<br/>Our heritage.<br/><em>Our future.</em></strong><i>Discover the community <b>↗</b></i></span>
           </button>
