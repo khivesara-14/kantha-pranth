@@ -345,3 +345,140 @@ img{max-width:100%}
 @media(hover:none){
   .quick-card:hover,.service-cat:hover,.listing:hover{transform:none;box-shadow:0 4px 16px rgba(55,30,20,.035)}
 }
+
+
+/* Desktop experience: app-like left rail, generous workspace and wide content */
+@media(min-width:1100px){
+  html{scroll-padding-top:100px;scroll-padding-bottom:32px}
+  body{background:radial-gradient(ellipse at 50% 0%,#f8f1e7 0%,#eee8e0 62%,#e7ded4 100%);background-attachment:fixed}
+  .app{max-width:1500px;min-height:100vh;margin:0 auto;padding-bottom:36px;overflow:visible;box-shadow:0 0 70px rgba(55,30,20,.07)}
+  .topbar{min-height:82px;padding:16px 48px 16px 252px;gap:24px}
+  .brand-wrap{gap:12px}
+  .brand-mark{width:44px;height:44px;border-radius:14px}
+  .brand{font-size:15px;letter-spacing:.095em}
+  .brand-sub{font-size:11px}
+  .top-actions{gap:12px}
+  .icon-btn,.avatar.mini{width:44px;height:44px}
+  .content{max-width:none;margin:0;padding:22px 48px 54px 252px}
+  .location-row{padding:8px 0 18px;min-height:56px}
+  .location-pill,.soft-btn{font-size:13px;padding:10px 15px}
+  .hero{min-height:260px;padding:38px 42px;border-radius:28px;margin-top:0}
+  .hero>div:first-child{max-width:700px}
+  .hero .eyebrow{font-size:11px;margin-bottom:12px}
+  .hero h1{font-size:clamp(36px,3.3vw,48px);line-height:1.1}
+  .hero-copy{font-size:15px;line-height:1.65;max-width:480px;margin-top:15px}
+  .hero-symbol{font-size:82px;margin-right:24px}
+  .search{height:54px;max-width:none;border-radius:16px;margin:20px 0 17px;padding:0 18px}
+  .search span{font-size:25px}
+  .search input{font-size:15px}
+  .quick-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+  .quick-card{min-height:118px;padding:17px 10px;border-radius:19px;gap:10px}
+  .quick-card span{width:44px;height:44px;font-size:20px;border-radius:14px}
+  .quick-card b{font-size:12px}
+  .section-head{margin:30px 2px 14px}
+  .section-head h2{font-size:19px}
+  .section-head button{font-size:13px}
+  .discover-section{margin-top:30px}
+  .discover-section .section-head{margin:0 2px 14px}
+  .discover-section .section-head h2{font-size:19px}
+  .discover-kicker{font-size:9px}
+  .discover-strip{gap:16px}
+  .discover-card{height:235px;min-width:0;border-radius:22px}
+  .discover-overlay{left:20px;right:18px;bottom:20px;gap:5px}
+  .discover-overlay small{font-size:9px}
+  .discover-overlay b{font-size:25px}
+  .discover-overlay i{font-size:12px}
+  .image-note{font-size:11px;margin-top:10px}
+  .page{padding-top:18px;max-width:1240px;margin:0 auto}
+  .page-head{align-items:center;margin:4px 0 26px}
+  .page h1{font-size:36px;line-height:1.12}
+  .page-head>div>p:last-child{font-size:14px;margin-top:8px}
+  .primary,.outline{font-size:14px;padding:13px 19px;border-radius:14px;min-height:46px}
+  .primary.small{font-size:13px;min-height:44px;padding:11px 16px}
+  .filter-row,.category-scroll,.event-tabs{gap:10px;margin-bottom:17px}
+  .filter-row button,.category-scroll button,.event-tabs button{cursor:pointer}
+  .listing-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+  .listing{border-radius:20px}
+  .listing-img{height:190px}
+  .listing-body{padding:15px}
+  .listing-title{font-size:14px}
+  .price{font-size:17px}
+  .meta{font-size:11px}
+  .service-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
+  .service-cat{min-height:100px;border-radius:17px;padding:14px 8px;gap:9px}
+  .service-cat span{font-size:24px}
+  .service-cat b{font-size:12px}
+  .service-card{padding:17px;border-radius:19px;margin-bottom:12px;gap:14px}
+  .service-icon{width:52px;height:52px;border-radius:16px;font-size:23px}
+  .service-title h3{font-size:14px}
+  .service-info p{font-size:12px;line-height:1.55}
+  .service-info small{font-size:11px}
+  .call{font-size:12px;padding:10px 13px}
+  .event-card{padding:16px;gap:14px;border-radius:19px;margin-bottom:12px}
+  .event-date{width:54px;padding:9px 4px}
+  .event-date b{font-size:21px}
+  .event-date span{font-size:10px}
+  .event-icon{width:54px;height:54px;font-size:25px}
+  .event-info h3{font-size:15px;margin:4px 0 6px}
+  .event-info p{font-size:12px}
+  .directory-banner{padding:18px;gap:15px;border-radius:20px;margin-bottom:17px}
+  .directory-icon{width:54px;height:54px;font-size:27px}
+  .directory-banner b{font-size:14px}
+  .directory-banner p{font-size:12px;line-height:1.6}
+  .family-card{padding:15px;gap:14px;border-radius:19px;margin-bottom:11px}
+  .family-avatar{width:56px;height:56px}
+  .family-info h3{font-size:14px}
+  .family-info p{font-size:12px}
+  .family-info small{font-size:11px}
+  .post-card{padding:22px;border-radius:22px;margin-bottom:16px}
+  .post-author b{font-size:14px}
+  .post-author span{font-size:12px}
+  .post-card h3{font-size:18px;margin:12px 0 7px}
+  .post-card>p{font-size:14px;line-height:1.7}
+  .post-actions{gap:14px;margin-top:16px;padding-top:12px}
+  .post-actions button{font-size:12px;min-height:38px;padding:8px 11px}
+  .pill{font-size:11px;padding:6px 11px}
+  .profile-card{padding:32px;border-radius:26px}
+  .profile-card h2{font-size:28px}
+  .profile-card>p{font-size:13px}
+  .profile-stats b{font-size:22px}
+  .profile-stats span{font-size:10px}
+  .settings-list button{padding:19px 6px;font-size:14px}
+  .help-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .help-card{padding:20px;border-radius:20px}
+  .help-card span{font-size:32px;margin-bottom:18px}
+  .help-card b{font-size:14px}
+  .help-card small{font-size:12px}
+  .empty-state{padding:55px 30px;border-radius:22px}
+  .empty-state h3{font-size:24px}
+  .empty-state p{font-size:14px}
+  .bottom-nav{top:104px;bottom:auto;left:max(18px,calc((100vw - 1500px)/2 + 20px));transform:none;width:204px;max-width:204px;height:auto;display:flex;flex-direction:column;gap:5px;padding:12px;border:1px solid var(--line);border-radius:22px;background:rgba(255,253,249,.96);box-shadow:0 12px 35px rgba(50,25,15,.09);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+  .bottom-nav button{min-height:48px;width:100%;flex-direction:row;justify-content:flex-start;gap:13px;padding:0 14px;border-radius:13px;color:#766b65}
+  .bottom-nav button span{width:24px;font-size:20px;text-align:center}
+  .bottom-nav small{font-size:13px;letter-spacing:0;font-weight:700}
+  .bottom-nav button.selected{background:#f5eae0;color:var(--wine)}
+  .fab{left:auto;right:36px;bottom:32px;transform:none;width:58px;height:58px;border-radius:19px;font-size:30px}
+  .toast{bottom:28px;left:auto;right:110px;transform:none;font-size:12px;max-width:420px}
+  .modal-backdrop{align-items:center;padding:24px}
+  .modal{width:min(680px,calc(100vw - 48px));max-width:680px;max-height:88vh;border-radius:26px;padding:24px;box-shadow:0 30px 100px rgba(32,18,13,.25)}
+  .modal-head h2{font-size:25px}
+  .form{gap:17px}
+  .form label{font-size:13px}
+  .form input,.form textarea,.form select{font-size:14px;min-height:48px;padding:13px 14px}
+  .form textarea{min-height:120px}
+  .contact-actions{gap:12px}
+  .contact-action{min-height:46px;font-size:14px}
+}
+@media(min-width:1500px){
+  .topbar{padding-left:270px;padding-right:64px}
+  .content{padding-left:270px;padding-right:64px}
+  .bottom-nav{left:max(20px,calc((100vw - 1500px)/2 + 28px));width:214px;max-width:214px}
+  .hero{min-height:290px;padding:44px 48px}
+  .discover-card{height:255px}
+  .listing-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+}
+@media(min-width:1100px) and (max-height:760px){
+  .bottom-nav{top:88px;gap:2px;padding:8px}
+  .bottom-nav button{min-height:42px}
+  .fab{bottom:20px}
+}
