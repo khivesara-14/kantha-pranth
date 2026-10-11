@@ -212,23 +212,23 @@ export default function AuthGate({ children }) {
 
   if (screen === 'welcome') {
     return (
-      <main style={styles.welcomeScreen}>
-        <div style={styles.welcomeShell}>
-          <div style={styles.illustration}>
-            <div style={styles.templeLine}>☼</div>
-            <div style={styles.templeBase}>KANTHA<br />PRANTH</div>
+      <main className="auth-screen">
+        <section className="auth-mobile-shell welcome-shell">
+          <div className="welcome-illustration" aria-label="Kantha Pranth community welcome">
+            <div className="temple-line" aria-hidden="true">☼</div>
+            <div className="temple-base">KANTHA<br />PRANTH</div>
           </div>
 
-          <div style={styles.welcomeLogo}>☀</div>
-          <p style={styles.eyebrow}>JAIN COMMUNITY · BENGALURU</p>
-          <h1 style={styles.welcomeTitle}>KANTHA PRANTH</h1>
-          <p style={styles.tagline}>A trusted platform for our Jain community</p>
+          <div className="welcome-logo" aria-label="Kantha Pranth logo" role="img">☀</div>
+          <p className="eyebrow">JAIN COMMUNITY · BENGALURU</p>
+          <h1>KANTHA PRANTH</h1>
+          <p className="welcome-tagline">A trusted platform for our Jain community</p>
 
-          <div style={styles.points}>
+          <div className="welcome-points">
             <span>Connect</span><i>•</i><span>Support</span><i>•</i><span>Grow</span>
           </div>
 
-          <div style={styles.featureGrid}>
+          <div className="welcome-feature-grid">
             {[
               ['👥', 'Connect', 'with members'],
               ['⌕', 'Discover', 'local services'],
@@ -237,8 +237,8 @@ export default function AuthGate({ children }) {
               ['📍', 'Local', 'information'],
               ['♥', 'Support', 'each other']
             ].map(([icon, title, sub]) => (
-              <div key={title} style={styles.feature}>
-                <span style={styles.featureIcon}>{icon}</span>
+              <div key={title}>
+                <span>{icon}</span>
                 <b>{title}</b>
                 <small>{sub}</small>
               </div>
@@ -247,7 +247,7 @@ export default function AuthGate({ children }) {
 
           <button
             type="button"
-            style={styles.primary}
+            className="primary welcome-cta full"
             onClick={() => {
               setMessage('');
               setMode('login');
@@ -257,15 +257,15 @@ export default function AuthGate({ children }) {
             Get Started
           </button>
 
-          <small style={styles.foot}>Built for the Jain Community of Bengaluru</small>
-        </div>
+          <small className="welcome-foot">Built for the Jain Community of Bengaluru</small>
+        </section>
       </main>
     );
   }
 
   return (
-    <main style={styles.welcomeScreen}>
-      <div style={styles.loginCard}>
+    <main className="auth-screen auth-login-screen">
+      <section className="auth-mobile-shell">
         <button type="button" style={styles.back} onClick={() => setScreen('welcome')}>← Back</button>
         <div style={styles.welcomeLogo}>☀</div>
         <div style={styles.brand}>KANTHA PRANTH</div>
@@ -348,7 +348,7 @@ export default function AuthGate({ children }) {
         {resetMode ? <button type="button" disabled={busy} onClick={() => { setMessage(''); setResetMode(false); }} style={styles.link}>Back to sign in</button> : <button type="button" disabled={busy} onClick={() => { setMessage(''); setEmailConfirmationRequired(false); setMode(mode === 'login' ? 'signup' : 'login'); }} style={styles.link}>
           {mode === 'login' ? 'New to Kantha Pranth? Create an account' : 'Already have an account? Sign in'}
         </button>}
-      </div>
+      </section>
     </main>
   );
 }
