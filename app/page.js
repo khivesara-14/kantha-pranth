@@ -1889,17 +1889,18 @@ function AuthScreen({
       <section className="auth-entry-art welcome-art" aria-label="Welcome to Kantha Pranth">
         <div className="auth-art-brand"><span>☀</span><b>KANTHA PRANTH</b></div>
         <div className="welcome-art-center">
-          <div className="welcome-emblem">🙏</div>
+          <div className="welcome-emblem">☼</div>
           <p>ONE COMMUNITY. MANY CONNECTIONS.</p>
-          <h1>Belonging begins<br/>right <em>here.</em></h1>
-          <span>A trusted space for Jain families and neighbours across Bengaluru to connect, discover, and support one another.</span>
+          <h1>A stronger community<br/>for <em>generations.</em></h1>
+          <span>A beautiful, trusted space for Jain families across Bengaluru to connect, celebrate our heritage, and support one another.</span>
         </div>
         <div className="welcome-art-foot"><span>⌖</span> MADE FOR BENGALURU’S JAIN COMMUNITY</div>
       </section>
       <section className="auth-entry-panel welcome-panel">
         <div className="welcome-content">
+          <div className="welcome-brand-lockup"><span>☼</span><div><b>Kantha Pranth</b><small>JAIN COMMUNITY · BENGALURU</small></div></div>
           <p className="auth-overline">NAMASTE & WELCOME</p>
-          <h2>Come closer to<br/>your community.</h2>
+          <h2>Our people.<br/>Our heritage.<br/><em>Our community.</em></h2>
           <p className="welcome-description">Find familiar faces, local businesses, community events, and ways to help — all in one place.</p>
           <div className="welcome-feature-list">
             <div><span>♧</span><p><b>Stay connected</b><small>Updates and conversations from your community</small></p></div>
