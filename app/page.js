@@ -1592,6 +1592,11 @@ export default function Home() {
             <div><p className="eyebrow">YOUR COMMUNITY, CLOSER</p><h1>{new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'},<br /><span>{userName || 'there'}</span> 👋</h1><p className="hero-copy">Discover what's happening around your Jain community in Bengaluru.</p></div>
             <div className="hero-symbol">🙏</div>
           </section>
+          <button type="button" className="heritage-home-banner" onClick={() => setActive('community')} aria-label="Explore our Jain community">
+            <img src="https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1400&q=90" alt="Ornate Indian temple architecture at golden hour" />
+            <span className="heritage-home-shade" />
+            <span className="heritage-home-copy"><small>FAITH · FAMILY · COMMUNITY</small><strong>Our people.<br/>Our heritage.<br/><em>Our future.</em></strong><i>Discover the community <b>↗</b></i></span>
+          </button>
           <div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, services, events..." /></div>
           <div className="quick-grid">{quickActions.map(([label, icon]) => <button key={label} className="quick-card" onClick={() => setActive(label === 'Community' ? 'community' : label === 'Family' ? 'family' : label === 'Buy & Sell' ? 'marketplace' : label === 'Services' || label === 'Businesses' ? 'services' : label === 'Events' ? 'events' : 'help')}><span>{icon}</span><b>{label}</b></button>)}</div>
           <section className="discover-section" aria-label="Explore Kantha Pranth">
