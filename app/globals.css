@@ -718,7 +718,7 @@ img{max-width:100%}
 :root{--wine:#76151f;--wine2:#9d2930;--gold:#c49345;--cream:#fff7ec;--paper:#fffaf2;--ink:#2b211c;--muted:#78665a;--line:#ead9c4}
 .auth-entry-page{background:radial-gradient(ellipse at 12% 10%,#fff8ed 0,transparent 40%),linear-gradient(135deg,#f5e7d3,#fffaf3 54%,#f2dfc7);padding:clamp(16px,3vw,42px);min-height:100svh}
 .auth-entry-layout{max-width:1160px;min-height:min(760px,calc(100svh - 48px));border:1px solid rgba(169,124,67,.2);border-radius:30px;overflow:hidden;box-shadow:0 28px 90px rgba(73,32,19,.16);background:#fffaf3;gap:0}
-.auth-entry-art{position:relative;isolation:isolate;overflow:hidden;background:#511018 url('https://images.unsplash.com/photo-1650119499755-93387331958a?auto=format&fit=crop&w=1600&q=85') center/cover no-repeat;color:#fff8e8;padding:clamp(28px,4vw,58px)}
+.auth-entry-art{position:relative;isolation:isolate;overflow:hidden;background:#511018 url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg') center/cover no-repeat;color:#fff8e8;padding:clamp(28px,4vw,58px)}
 .auth-entry-art:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(48,7,12,.42),rgba(65,10,14,.22) 34%,rgba(41,7,9,.84)),linear-gradient(120deg,rgba(113,20,30,.58),transparent 65%)}
 .auth-entry-art:after{content:"";position:absolute;z-index:-1;inset:14px;border:1px solid rgba(235,197,123,.44);border-radius:19px;pointer-events:none}
 .auth-art-brand{color:#ffe4a7;letter-spacing:.13em;font-size:12px}
@@ -741,7 +741,7 @@ img{max-width:100%}
 .primary.auth-main-btn,.welcome-cta{background:linear-gradient(110deg,#781720,#9d2930 60%,#70131c);box-shadow:0 9px 22px rgba(113,20,29,.19);border:1px solid rgba(255,255,255,.15);min-height:52px;border-radius:999px;transition:transform .2s,box-shadow .2s}
 .primary.auth-main-btn:hover,.welcome-cta:hover{transform:translateY(-2px);box-shadow:0 13px 28px rgba(113,20,29,.24)}
 .guest-modern,.guest-link{border:1px solid #d9b783;border-radius:999px;background:rgba(255,250,242,.7);min-height:48px}
-.welcome-art{background-image:url('https://images.unsplash.com/photo-1650119499755-93387331958a?auto=format&fit=crop&w=1600&q=85');background-position:center;background-size:cover}
+.welcome-art{background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg');background-position:center;background-size:cover}
 .welcome-art-center{max-width:520px}
 .welcome-art-center h1{font-size:clamp(38px,4.6vw,66px)}
 .welcome-art-center>span{font-size:15px;line-height:1.8;color:#fff0dc;max-width:440px}
@@ -764,7 +764,7 @@ img{max-width:100%}
 /* High-contrast visual refresh: make the first screen unmistakably different */
 .auth-welcome-page{padding:0!important;background:#f7ead8!important}
 .auth-welcome-page .auth-entry-layout{min-height:100svh!important;grid-template-columns:minmax(0,1.18fr) minmax(390px,.82fr)!important;background:#fff8ed!important}
-.auth-welcome-page .welcome-art{min-height:100svh!important;padding:clamp(30px,5vw,76px)!important;background-color:#58131b!important;background-image:linear-gradient(180deg,rgba(38,7,10,.18) 0%,rgba(52,8,13,.1) 32%,rgba(43,6,11,.83) 100%),url('https://images.unsplash.com/photo-1650119499755-93387331958a?auto=format&fit=crop&w=2000&q=90')!important;background-size:cover!important;background-position:center!important}
+.auth-welcome-page .welcome-art{min-height:100svh!important;padding:clamp(30px,5vw,76px)!important;background-color:#58131b!important;background-image:linear-gradient(180deg,rgba(38,7,10,.18) 0%,rgba(52,8,13,.1) 32%,rgba(43,6,11,.83) 100%),url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg')!important;background-size:cover!important;background-position:center!important}
 .auth-welcome-page .welcome-art:before{background:linear-gradient(120deg,rgba(74,9,17,.3),transparent 55%),linear-gradient(0deg,rgba(43,6,11,.28),transparent 55%)!important}
 .auth-welcome-page .welcome-art:after{inset:22px!important;border:1px solid rgba(239,203,131,.55)!important;border-radius:3px!important}
 .auth-welcome-page .auth-art-brand{font-size:13px!important;letter-spacing:.2em!important}
@@ -786,7 +786,7 @@ img{max-width:100%}
 .auth-welcome-page .welcome-cta{margin-top:24px!important;min-height:58px!important;font-size:15px!important}
 .auth-welcome-page .guest-link{margin-top:12px!important;min-height:52px!important;font-weight:700!important}
 .auth-login-page .auth-entry-layout{min-height:100svh!important}
-.auth-login-page .auth-entry-art{background-image:linear-gradient(180deg,rgba(45,7,12,.2),rgba(45,7,12,.8)),url('https://images.unsplash.com/photo-1650119499755-93387331958a?auto=format&fit=crop&w=2000&q=90')!important;background-size:cover!important;background-position:center!important}
+.auth-login-page .auth-entry-art{background-image:linear-gradient(180deg,rgba(45,7,12,.2),rgba(45,7,12,.8)),url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg')!important;background-size:cover!important;background-position:center!important}
 @media(max-width:760px){
  .auth-welcome-page{padding:0!important}
  .auth-welcome-page .auth-entry-layout{display:flex!important;flex-direction:column!important;min-height:100svh!important;border-radius:0!important}
@@ -810,9 +810,9 @@ img{max-width:100%}
 .heritage-home-copy strong em{font-style:normal;color:#edc679}
 .heritage-home-copy i{font-size:12px;font-style:normal;color:#fff5e6;border-bottom:1px solid rgba(240,203,129,.65);padding-bottom:7px}
 .heritage-home-copy i b{color:#edc679;margin-left:8px}
-.entry-splash{background:linear-gradient(0deg,rgba(49,8,13,.94),rgba(49,8,13,.38)),url('https://images.unsplash.com/photo-1650119499755-93387331958a?auto=format&fit=crop&w=1800&q=90') center/cover!important}
+.entry-splash{background:linear-gradient(0deg,rgba(49,8,13,.94),rgba(49,8,13,.38)),url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg') center/cover!important}
 .entry-splash h1{font-family:'Playfair Display',Georgia,serif!important;letter-spacing:.03em!important}
-.auth-entry-art{background-image:linear-gradient(180deg,rgba(45,7,12,.22),rgba(45,7,12,.82)),url('https://images.unsplash.com/photo-1650119499755-93387331958a?auto=format&fit=crop&w=1800&q=90')!important;background-position:center!important;background-size:cover!important}
+.auth-entry-art{background-image:linear-gradient(180deg,rgba(45,7,12,.22),rgba(45,7,12,.82)),url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg')!important;background-position:center!important;background-size:cover!important}
 @media(min-width:1000px){
  .app{max-width:1120px!important;padding-bottom:35px!important}
  .topbar{padding:18px 34px!important}
@@ -837,7 +837,7 @@ img{max-width:100%}
 :root{--wine:#74131d;--wine2:#941f2b;--gold:#c99a4b;--cream:#fff7ec;--paper:#fffaf2}
 .auth-welcome-page{background:#f6ead8!important;padding:0!important}
 .auth-welcome-page .auth-entry-layout{width:100%!important;max-width:none!important;min-height:100svh!important;display:grid!important;grid-template-columns:minmax(0,1.05fr) minmax(430px,.95fr)!important;gap:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important}
-.auth-welcome-page .welcome-art{min-height:100svh!important;padding:clamp(30px,4.2vw,64px)!important;background-color:#4b1018!important;background-image:linear-gradient(180deg,rgba(45,6,12,.22) 0%,rgba(45,6,12,.03) 34%,rgba(40,5,10,.84) 100%),url('https://images.unsplash.com/photo-1650119499755-93387331958a?auto=format&fit=crop&w=2200&q=90')!important;background-position:center!important;background-size:cover!important}
+.auth-welcome-page .welcome-art{min-height:100svh!important;padding:clamp(30px,4.2vw,64px)!important;background-color:#4b1018!important;background-image:linear-gradient(180deg,rgba(45,6,12,.22) 0%,rgba(45,6,12,.03) 34%,rgba(40,5,10,.84) 100%),url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg')!important;background-position:center!important;background-size:cover!important}
 .auth-welcome-page .welcome-art:before{background:linear-gradient(135deg,rgba(74,7,16,.35),transparent 58%)!important}
 .auth-welcome-page .welcome-art:after{inset:18px!important;width:auto!important;height:auto!important;right:18px!important;bottom:18px!important;border:1px solid rgba(244,207,137,.58)!important;border-radius:3px!important;box-shadow:none!important}
 .auth-welcome-page .auth-art-brand{gap:13px!important;font-size:12px!important;letter-spacing:.2em!important;color:#fff0ce!important}
@@ -869,7 +869,7 @@ img{max-width:100%}
 .auth-welcome-page .guest-link{width:100%!important;min-height:49px!important;margin-top:10px!important;border-radius:999px!important;border:1px solid #c88e57!important;background:transparent!important;color:#7b1b22!important;font-weight:700!important}
 .auth-welcome-page .welcome-foot{margin-top:22px!important;color:#a0783f!important;font-size:10px!important;letter-spacing:.02em!important;text-align:center!important}
 .auth-login-page .auth-entry-layout{width:100%!important;max-width:none!important;grid-template-columns:minmax(0,1.05fr) minmax(430px,.95fr)!important}
-.auth-login-page .auth-entry-art{background-image:linear-gradient(180deg,rgba(45,7,12,.12),rgba(45,7,12,.78)),url('https://images.unsplash.com/photo-1650119499755-93387331958a?auto=format&fit=crop&w=2200&q=90')!important;background-position:center!important;background-size:cover!important}
+.auth-login-page .auth-entry-art{background-image:linear-gradient(180deg,rgba(45,7,12,.12),rgba(45,7,12,.78)),url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg')!important;background-position:center!important;background-size:cover!important}
 .auth-login-page .auth-entry-panel{background:linear-gradient(145deg,#fffaf1,#f6e7d3)!important}
 .auth-login-page .auth-login-logo{border-radius:50%!important;background:#fff0d0!important;color:#8d6328!important;border:1px solid #d9b56f!important;box-shadow:none!important}
 .auth-login-page .auth-form-modern input{min-height:52px!important;border-radius:12px!important;background:#fffaf3!important;border-color:#e9d8c3!important}
@@ -913,7 +913,7 @@ img{max-width:100%}
 
 
 /* Reference-spec implementation: dedicated screen proportions and editorial treatment */
-.entry-splash{position:relative;isolation:isolate;overflow:hidden;min-height:100svh!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0!important;background:#4b0d16!important;background-image:linear-gradient(180deg,rgba(72,9,17,.14) 0%,rgba(75,11,18,.05) 40%,rgba(32,7,8,.72) 100%),url('https://images.unsplash.com/photo-1606293926075-69a00dbfri3?auto=format&fit=crop&w=1800&q=90')!important;background-size:cover!important;background-position:center 65%!important;color:#f8d88e!important}
+.entry-splash{position:relative;isolation:isolate;overflow:hidden;min-height:100svh!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0!important;background:#4b0d16!important;background-image:linear-gradient(180deg,rgba(72,9,17,.14) 0%,rgba(75,11,18,.05) 40%,rgba(32,7,8,.72) 100%),url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg')!important;background-size:cover!important;background-position:center 65%!important;color:#f8d88e!important}
 .entry-splash:before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(180deg,rgba(71,8,16,.68) 0%,rgba(87,13,20,.28) 42%,rgba(39,7,8,.55) 100%)}
 .entry-splash-mark{width:clamp(100px,15vw,160px)!important;height:clamp(100px,15vw,160px)!important;margin:0 auto 22px!important}
 .entry-splash h1{font-family:'Playfair Display',Georgia,serif!important;font-size:clamp(36px,6vw,62px)!important;color:#f7d68d!important;letter-spacing:-.025em!important;text-align:center!important}
@@ -921,10 +921,10 @@ img{max-width:100%}
 .entry-splash-caption{font-family:'Playfair Display',Georgia,serif!important;font-size:20px!important;color:#fff0d0!important}
 .entry-splash .entry-loader{position:absolute!important;bottom:34px!important;width:120px!important;height:2px!important;background:rgba(247,214,141,.22)!important}
 .entry-splash .entry-loader:after{background:#f5d184!important}
-.auth-welcome-page .welcome-art{background-image:linear-gradient(180deg,rgba(255,248,231,.06) 0%,rgba(255,248,231,.05) 36%,rgba(55,10,15,.52) 100%),url('https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1800&q=90')!important;background-position:center!important;background-size:cover!important}
+.auth-welcome-page .welcome-art{background-image:linear-gradient(180deg,rgba(255,248,231,.06) 0%,rgba(255,248,231,.05) 36%,rgba(55,10,15,.52) 100%),url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg')!important;background-position:center!important;background-size:cover!important}
 .auth-welcome-page .welcome-art-center h1{max-width:520px!important}
 .auth-welcome-page .welcome-feature-list>div>span{font-family:Arial,sans-serif!important}
-.auth-login-page .auth-entry-art{background-image:linear-gradient(90deg,rgba(79,14,20,.52),rgba(79,14,20,.12)),url('https://images.unsplash.com/photo-1606293926075-69a00dbfri3?auto=format&fit=crop&w=1800&q=90')!important;background-position:center!important}
+.auth-login-page .auth-entry-art{background-image:linear-gradient(90deg,rgba(79,14,20,.52),rgba(79,14,20,.12)),url('https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg')!important;background-position:center!important}
 .auth-login-page .auth-entry-art:before{background:linear-gradient(180deg,rgba(55,9,15,.18),rgba(55,9,15,.75))!important}
 .auth-login-page .auth-entry-art:after{border-radius:3px!important}
 .auth-login-page .auth-form-wrap h1{font-size:clamp(32px,3.5vw,46px)!important;color:#35191a!important}
@@ -997,7 +997,7 @@ body{background:#f5e8d8;color:var(--ink);font-family:'DM Sans',sans-serif}
 .bottom-nav button.selected{color:#811522}
 .fab{bottom:74px;background:#851724;border-radius:50%;width:43px;height:43px;border:3px solid #fff6e9}
 .entry-splash{position:relative;isolation:isolate;overflow:hidden;min-height:100svh;background:linear-gradient(180deg,#4b0c11 0%,#76141b 45%,#35110d 100%);color:#f8d98e;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:13vh 24px 7vh;text-align:center}
-.entry-splash:before{content:"";position:absolute;z-index:-1;left:0;right:0;bottom:0;height:48%;background:linear-gradient(180deg,transparent,rgba(45,13,6,.08) 15%,rgba(35,10,5,.25)),url("https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1200&q=90") center 54%/cover;mask-image:linear-gradient(180deg,transparent 0%,#000 26%)}
+.entry-splash:before{content:"";position:absolute;z-index:-1;left:0;right:0;bottom:0;height:48%;background:linear-gradient(180deg,transparent,rgba(45,13,6,.08) 15%,rgba(35,10,5,.25)),url("https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg") center 54%/cover;mask-image:linear-gradient(180deg,transparent 0%,#000 26%)}
 .entry-splash-mark{width:138px;height:138px;margin-bottom:14px;display:grid;place-items:center}
 .entry-splash-mark img{width:100%;height:100%;object-fit:contain}
 .entry-splash h1{font-family:'Playfair Display',serif;font-size:clamp(29px,8vw,39px);font-weight:600;letter-spacing:-.035em;margin:0;color:#f7d58a}
@@ -1009,7 +1009,7 @@ body{background:#f5e8d8;color:var(--ink);font-family:'DM Sans',sans-serif}
 .auth-entry-page{min-height:100svh;background:#fff2e1;color:#251814}
 .auth-entry-layout{width:100%;max-width:1200px;min-height:100svh;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,.92fr);background:#fff5e8}
 .auth-entry-art{position:relative;isolation:isolate;overflow:hidden;background:#591016;color:#fff1ce;padding:34px;display:flex;flex-direction:column;justify-content:space-between;min-height:100svh}
-.auth-entry-art:before{content:"";position:absolute;z-index:-2;inset:0;background:url("https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1400&q=90") center/cover}
+.auth-entry-art:before{content:"";position:absolute;z-index:-2;inset:0;background:url("https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg") center/cover}
 .auth-entry-art:after{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(180deg,rgba(69,8,13,.82),rgba(88,14,17,.45) 45%,rgba(40,11,7,.82))}
 .auth-art-brand{display:flex;align-items:center;gap:10px;font-family:'Playfair Display',serif;font-size:19px;letter-spacing:.02em;color:#f8d98f}
 .auth-art-brand img{width:46px;height:46px;object-fit:contain}
@@ -1020,7 +1020,7 @@ body{background:#f5e8d8;color:var(--ink);font-family:'DM Sans',sans-serif}
 .auth-art-copy>span{display:block;max-width:370px;font-size:13px;line-height:1.7;color:#f6e6cf}
 .auth-art-foot,.welcome-art-foot{font-size:9px;letter-spacing:.12em;color:#f3d8a4}
 .auth-entry-panel{position:relative;display:flex;align-items:center;justify-content:center;padding:45px 34px;background:#fff5e8;overflow:hidden}
-.auth-entry-panel:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 100% 0%,rgba(231,192,126,.20),transparent 45%),url("https://images.unsplash.com/photo-1606293926075-69a00db401f9?auto=format&fit=crop&w=1000&q=85") right top/auto 48% no-repeat;opacity:.23;pointer-events:none}
+.auth-entry-panel:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 100% 0%,rgba(231,192,126,.20),transparent 45%),url("https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg") right top/auto 48% no-repeat;opacity:.23;pointer-events:none}
 .auth-form-wrap,.welcome-content{width:100%;max-width:390px;position:relative;z-index:1}
 .auth-back-link{position:absolute;top:22px;left:24px;z-index:3;color:#811522;font-size:12px;display:flex;align-items:center;gap:8px}
 .auth-login-logo{width:54px;height:54px;margin:0 auto 12px}
@@ -1044,7 +1044,7 @@ body{background:#f5e8d8;color:var(--ink);font-family:'DM Sans',sans-serif}
 .auth-entry-page .primary{border-radius:999px}
 .auth-welcome-page .auth-entry-layout{grid-template-columns:1fr 1fr}
 .auth-welcome-page .auth-entry-art{background:#f4dcb4;color:#68151a}
-.auth-welcome-page .auth-entry-art:before{background:url("https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1400&q=90") center/cover}
+.auth-welcome-page .auth-entry-art:before{background:url("https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg") center/cover}
 .auth-welcome-page .auth-entry-art:after{background:linear-gradient(180deg,rgba(255,243,218,.15),rgba(255,238,205,.18) 35%,rgba(63,14,7,.64))}
 .auth-welcome-page .auth-art-brand{color:#70121b}
 .welcome-art-center{margin:auto 0;max-width:500px}
@@ -1079,11 +1079,11 @@ body{background:#f5e8d8;color:var(--ink);font-family:'DM Sans',sans-serif}
  .auth-entry-layout,.auth-welcome-page .auth-entry-layout{display:block;min-height:100svh;position:relative;background:#fff2e1}
  .auth-entry-art{display:none}
  .auth-entry-panel{min-height:100svh;padding:78px 25px 30px;align-items:flex-start}
- .auth-entry-panel:before{background:radial-gradient(ellipse at 100% 0%,rgba(231,192,126,.22),transparent 48%),url("https://images.unsplash.com/photo-1606293926075-69a00db401f9?auto=format&fit=crop&w=900&q=85") right top/auto 38% no-repeat;opacity:.28}
+ .auth-entry-panel:before{background:radial-gradient(ellipse at 100% 0%,rgba(231,192,126,.22),transparent 48%),url("https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg") right top/auto 38% no-repeat;opacity:.28}
  .auth-form-wrap{margin:auto 0}
  .auth-welcome-page .auth-entry-panel{padding:28px 23px 24px;align-items:flex-end;background:linear-gradient(180deg,rgba(255,244,226,.10),#fff1df 58%)}
  .auth-welcome-page .auth-entry-panel:before{background:radial-gradient(ellipse at 50% 100%,rgba(237,172,87,.2),transparent 48%);opacity:1}
- .auth-welcome-page .auth-entry-layout:before{content:"";position:absolute;inset:0 0 auto;height:48%;background:linear-gradient(180deg,rgba(255,240,213,.03),rgba(255,241,220,.25)),url("https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=900&q=85") center/cover;opacity:.75}
+ .auth-welcome-page .auth-entry-layout:before{content:"";position:absolute;inset:0 0 auto;height:48%;background:linear-gradient(180deg,rgba(255,240,213,.03),rgba(255,241,220,.25)),url("https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg") center/cover;opacity:.75}
  .auth-welcome-page .welcome-content{max-width:500px;margin:0 auto}
  .welcome-brand-lockup{margin-bottom:14px}
  .welcome-brand-lockup>img{width:40px;height:40px}
