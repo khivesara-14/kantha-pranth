@@ -1213,3 +1213,7 @@ body{background:#fff4e4;color:var(--kp-ink)}
  .auth-login-logo{margin:0 auto 14px}
  .auth-entry-panel:before{opacity:.12!important}
 }
+
+.auth-logo img{display:block;width:76px;height:76px;object-fit:contain;margin:0 auto}
+.brand-mark.big img{display:block;width:100%;height:100%;object-fit:contain}
+.auth-logo{display:grid;place-items:center;background:transparent!important;box-shadow:none!important}
