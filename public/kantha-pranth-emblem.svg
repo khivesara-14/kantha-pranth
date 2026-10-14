@@ -1,40 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" role="img" aria-label="Kantha Pranth Jain community sunburst emblem">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" role="img" aria-label="Jain Ahimsa symbol in an antique gold sunburst">
   <defs>
-    <linearGradient id="gold" x1="35" y1="18" x2="205" y2="224" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFF0B8"/><stop offset=".34" stop-color="#E9C36F"/><stop offset=".68" stop-color="#C8943E"/><stop offset="1" stop-color="#F5D994"/>
+    <linearGradient id="gold" x1="28" y1="12" x2="210" y2="226" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF1BC"/><stop offset=".32" stop-color="#E9C36F"/><stop offset=".68" stop-color="#C28A37"/><stop offset="1" stop-color="#F8DFA0"/>
     </linearGradient>
-    <linearGradient id="petal" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#F9DEA0"/><stop offset="1" stop-color="#D6A24C"/></linearGradient>
+    <linearGradient id="rays" x1="120" y1="0" x2="120" y2="65" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBE5A4"/><stop offset="1" stop-color="#B77A2C"/>
+    </linearGradient>
   </defs>
-  <g fill="url(#petal)" stroke="url(#gold)" stroke-width="1.5" stroke-linejoin="round">
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(22.5 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(45 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(67.5 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(90 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(112.5 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(135 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(157.5 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(180 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(202.5 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(225 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(247.5 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(270 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(292.5 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(315 120 120)"/>
-    <path d="M120 5 Q138 29 120 55 Q102 29 120 5Z" transform="rotate(337.5 120 120)"/>
+  <g fill="url(#rays)" stroke="url(#gold)" stroke-width="1.1" stroke-linejoin="round">
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(22.5 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(45 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(67.5 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(90 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(112.5 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(135 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(157.5 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(180 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(202.5 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(225 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(247.5 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(270 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(292.5 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(315 120 120)"/>
+    <path d="M120 3 Q137 25 120 48 Q103 25 120 3Z" transform="rotate(337.5 120 120)"/>
   </g>
-  <g fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="120" cy="120" r="76" stroke-width="4"/>
-    <circle cx="120" cy="120" r="69" stroke-width="1.6"/>
+  <circle cx="120" cy="120" r="76" stroke="url(#gold)" stroke-width="4"/>
+  <circle cx="120" cy="120" r="69" stroke="url(#gold)" stroke-width="1.4"/>
+  <!-- Jain Ahimsa hand -->
+  <g stroke="url(#gold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M91 129 L91 92 Q91 86 96 86 Q101 86 101 92 V111 V75 Q101 69 106 69 Q111 69 111 75 V108 V65 Q111 59 116 59 Q121 59 121 65 V106 V69 Q121 63 126 63 Q131 63 131 69 V110 V81 Q131 75 136 75 Q141 75 141 81 V121 Q141 144 120 151 Q99 145 91 129Z" fill="rgba(197,138,55,.08)"/>
+    <path d="M102 121 Q116 127 130 121" stroke-width="1.6"/>
   </g>
-  <g fill="url(#gold)" stroke="url(#gold)" stroke-linejoin="round">
-    <path d="M98 155 L98 94 Q98 87 105 85 L110 82 L110 73 L130 73 L130 82 L135 85 Q142 87 142 94 L142 155 Z" fill="none" stroke-width="3.4"/>
-    <path d="M105 151 L105 119 Q105 114 110 114 H130 Q135 114 135 119 V151 Z" fill="none" stroke-width="1.5"/>
-    <path d="M112 89 H128 M115 94 H125" stroke-width="2"/>
-    <path d="M112 97 V103 H118 V109 H124 V103 H130 V97 H124 V91 H118 V97 Z" stroke-width="1.4"/>
-    <circle cx="120" cy="119" r="3.2" stroke="none"/>
-    <path d="M113 130 Q109 133 112 137 Q115 140 120 140 Q125 140 128 137 Q131 133 127 130 Q123 128 120 132 Q117 128 113 130Z" stroke-width="1.1"/>
-    <path d="M111 146 L111 151 M116 145 L116 151 M121 145 L121 151 M126 145 L126 151" stroke-width="1.6"/>
-    <path d="M91 160 H149 M101 166 H139" stroke-width="2.8"/>
+  <!-- Dharma wheel and the traditional Jain swastika -->
+  <circle cx="116" cy="101" r="15" stroke="url(#gold)" stroke-width="2.4"/>
+  <circle cx="116" cy="101" r="3" fill="url(#gold)" stroke="none"/>
+  <g stroke="url(#gold)" stroke-width="1.7" stroke-linecap="round">
+    <path d="M116 87 V115 M102 101 H130 M106 91 L126 111 M126 91 L106 111"/>
   </g>
+  <g stroke="url(#gold)" stroke-width="3.1" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M108 167 V153 H124 V161 H116 V169 H132 V153"/>
+  </g>
+  <g fill="url(#gold)">
+    <circle cx="104" cy="181" r="3.2"/><circle cx="116" cy="181" r="3.2"/><circle cx="128" cy="181" r="3.2"/>
+    <path d="M96 193 Q116 184 136 193 Q116 203 96 193Z"/>
+    <circle cx="116" cy="194" r="3.3"/>
+  </g>
+  <path d="M93 209 Q116 216 139 209" stroke="url(#gold)" stroke-width="2" stroke-linecap="round"/>
 </svg>
