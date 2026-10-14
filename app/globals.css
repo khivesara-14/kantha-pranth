@@ -1126,3 +1126,90 @@ body{background:#f5e8d8;color:var(--ink);font-family:'DM Sans',sans-serif}
  .heritage-home-banner{height:152px}
  .heritage-home-copy strong{font-size:22px}
 }
+
+/* Reference-led Kantha Pranth visual pass — warm ivory, burgundy and antique gold */
+:root{--kp-wine:#74151d;--kp-wine-deep:#4a0e13;--kp-gold:#c58a37;--kp-ivory:#fff5e7;--kp-ink:#291a16;--kp-muted:#786458}
+body{background:#fff4e4;color:var(--kp-ink)}
+.app{background:linear-gradient(180deg,#fff8ed 0%,#fff0dc 100%);color:var(--kp-ink)}
+.topbar{background:rgba(255,249,239,.96);border-bottom:1px solid #eedbc0;box-shadow:0 3px 18px rgba(80,31,17,.05)}
+.brand-mark{background:transparent!important;box-shadow:none!important}
+.brand-mark img{width:100%;height:100%;object-fit:contain}
+.brand,.brand-wrap .brand{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.035em;color:#71151b}
+.brand-sub{color:#a05a24;letter-spacing:.1em;text-transform:uppercase}
+.hero{background:transparent;border:0;box-shadow:none;padding:24px 0 15px}
+.hero h1{font-family:'Playfair Display',Georgia,serif;color:#291a16;letter-spacing:-.04em}
+.hero h1 span{color:#74151d}
+.hero-copy{color:#786458}
+.heritage-home-banner{position:relative;overflow:hidden;border-radius:15px;border:1px solid rgba(199,146,78,.25);box-shadow:0 12px 30px rgba(75,29,16,.12);background:#251711}
+.heritage-home-banner img{filter:saturate(.92) sepia(.08);transform:scale(1.015)}
+.heritage-home-shade{background:linear-gradient(90deg,rgba(13,15,14,.9) 0%,rgba(24,20,14,.62) 42%,rgba(29,20,12,.04) 100%)}
+.heritage-home-copy{left:clamp(20px,4vw,48px);max-width:48%;color:#fff1d2}
+.heritage-home-copy small{color:#e9c27b;letter-spacing:.16em;font-weight:800}
+.heritage-home-copy strong{font-family:'Playfair Display',Georgia,serif;line-height:1.02;font-weight:600}
+.heritage-home-copy strong em{color:#f3cf8b}
+.heritage-home-copy i{display:inline-flex;margin-top:18px;padding:10px 15px;border:1px solid rgba(255,230,186,.65);border-radius:999px;color:#fff3dd;font-style:normal;font-size:11px}
+.quick-grid{gap:12px}
+.quick-card{background:rgba(255,250,242,.92);border:1px solid #efdfc9;border-radius:18px;box-shadow:0 5px 15px rgba(79,39,18,.045);transition:transform .18s ease,box-shadow .18s ease}
+.quick-card:hover{transform:translateY(-2px);box-shadow:0 9px 22px rgba(79,39,18,.09)}
+.quick-card span{background:#f9e6c8;color:#9d4a18}
+.search{background:#fffaf2;border:1px solid #ecdcc7;border-radius:14px;box-shadow:none}
+.section-head h2,.page-head h1{font-family:'Playfair Display',Georgia,serif;color:#68151a}
+.discover-card{border-radius:15px;overflow:hidden;border:1px solid #efddc6}
+.primary,.welcome-cta,.auth-main-btn{background:linear-gradient(105deg,#811923,#650f18)!important;border:1px solid #811923!important;box-shadow:0 5px 12px rgba(113,19,29,.14);border-radius:999px!important}
+.primary:hover,.welcome-cta:hover,.auth-main-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.outline,.guest-link,.guest-modern{border-radius:999px!important;border-color:#c6814c!important;color:#781820!important;background:rgba(255,249,239,.82)}
+.bottom-nav{background:rgba(255,249,239,.97);border-color:#ead9c3;box-shadow:0 -4px 24px rgba(65,32,16,.07)}
+/* Entry screens echo the supplied five-screen concept */
+.auth-entry-page{background:#fff1df!important;color:#2b1a15}
+.auth-entry-layout{background:#fff1df!important}
+.auth-entry-art{background-color:#5a1116!important;background-image:linear-gradient(180deg,rgba(72,8,13,.1),rgba(31,9,8,.36)),url("https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg")!important;background-size:cover!important;background-position:center!important}
+.auth-entry-art:before{background:linear-gradient(180deg,rgba(67,8,13,.12),rgba(44,11,9,.18) 55%,rgba(34,10,8,.7))!important}
+.auth-art-brand b{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.035em}
+.auth-art-copy h2,.welcome-content h2,.auth-form-wrap h1{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.035em}
+.auth-art-copy h2 em{color:#e9c27b}
+.auth-entry-panel{background:linear-gradient(160deg,#fff9ef,#ffefd9)!important}
+.auth-entry-panel:before{opacity:.16!important}
+.auth-form-wrap{max-width:440px}
+.auth-login-logo img,.auth-login-logo{width:54px;height:54px;object-fit:contain}
+.auth-overline{color:#a05a24;letter-spacing:.14em}
+.auth-form-wrap h1{color:#241713}
+.auth-copy{color:#786458}
+.auth-form-modern label{color:#6b5547}
+.auth-form-modern input{background:rgba(255,251,245,.95)!important;border:1px solid #ecdcc7!important;border-radius:13px!important;min-height:48px}
+.auth-form-modern input:focus{border-color:#bc8148!important;box-shadow:0 0 0 3px rgba(188,129,72,.12)!important}
+.auth-account-links button,.switch-auth button{color:#781820!important}
+.auth-divider:before,.auth-divider:after{background:#ead9c3!important}
+.guest-modern{min-height:46px}
+.welcome-art{background-image:linear-gradient(180deg,rgba(255,235,198,.04),rgba(69,19,10,.38)),url("https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg")!important}
+.welcome-art-center h1{font-family:'Playfair Display',Georgia,serif}
+.welcome-brand-lockup{margin-bottom:22px}
+.welcome-brand-lockup b{color:#74151d}
+.welcome-feature-list>div{box-shadow:0 3px 12px rgba(87,43,20,.035)}
+.welcome-feature-list>div>span{background:#fae5c5;color:#974619}
+.auth-logo{color:#d2a24e}
+@media(min-width:900px){
+ .auth-entry-layout{max-width:1180px!important;min-height:min(760px,calc(100vh - 48px))!important;margin:24px auto!important;border-radius:24px;overflow:hidden;box-shadow:0 22px 65px rgba(76,29,16,.13);border:1px solid #ecd8bd}
+ .auth-entry-art{min-height:690px}
+ .auth-entry-panel{padding:48px clamp(30px,5vw,76px)}
+ .auth-welcome-page .auth-entry-art{flex:1.05}
+ .auth-welcome-page .auth-entry-panel{flex:.95}
+}
+@media(max-width:760px){
+ .topbar{padding:12px 16px}
+ .hero{padding-top:15px}
+ .heritage-home-banner{height:205px!important}
+ .heritage-home-copy{max-width:75%;left:20px}
+ .heritage-home-copy strong{font-size:clamp(24px,7vw,34px)}
+ .heritage-home-copy i{margin-top:10px;padding:8px 12px}
+ .quick-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+ .quick-card{min-height:88px}
+ .auth-entry-layout{min-height:100svh!important}
+ .auth-entry-art{display:none!important}
+ .auth-entry-panel{padding:28px 23px 30px!important}
+ .auth-login-page .auth-entry-panel{padding-top:62px!important}
+ .auth-form-wrap{width:100%;max-width:460px;margin:auto!important}
+ .auth-form-wrap h1{text-align:center;font-size:32px}
+ .auth-copy{text-align:center}
+ .auth-login-logo{margin:0 auto 14px}
+ .auth-entry-panel:before{opacity:.12!important}
+}
