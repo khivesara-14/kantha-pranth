@@ -1217,3 +1217,137 @@ body{background:#fff4e4;color:var(--kp-ink)}
 .auth-logo img{display:block;width:76px;height:76px;object-fit:contain;margin:0 auto}
 .brand-mark.big img{display:block;width:100%;height:100%;object-fit:contain}
 .auth-logo{display:grid;place-items:center;background:transparent!important;box-shadow:none!important}
+
+/* Alignment and imagery refinement: consistent rhythm, icon boxes, cards and responsive behavior */
+:root{--kp-space:8px}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit}
+button{ -webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(188,129,72,.45);outline-offset:2px}
+.brand-wrap{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-mark{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;overflow:hidden}
+.brand-mark img{display:block;width:100%;height:100%;object-fit:contain}
+.brand-wrap>div:last-child{min-width:0;line-height:1.15}
+.brand{font-size:clamp(15px,1.4vw,20px);line-height:1.05}
+.brand-sub{font-size:9px;margin-top:4px;line-height:1.2}
+.top-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+.icon-btn{display:inline-grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:50%;position:relative}
+.avatar.mini{width:38px;height:38px;flex:0 0 38px}
+.content{width:100%;max-width:1240px;margin:0 auto;padding:16px clamp(14px,3vw,32px) 110px}
+.location-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;margin:4px 0 10px}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:20px;min-width:0}
+.hero>div:first-child{min-width:0}
+.hero h1{font-size:clamp(25px,3.4vw,38px);line-height:1.1;margin:0 0 9px}
+.hero-copy{max-width:560px;line-height:1.55}
+.hero-symbol{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:50%;background:#f8e6c8;color:#9c4b1a}
+.heritage-home-banner{display:block;width:100%;min-height:250px;height:clamp(230px,28vw,330px);padding:0;text-align:left}
+.heritage-home-banner img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;object-position:center 48%}
+.heritage-home-shade{position:absolute;inset:0;pointer-events:none}
+.heritage-home-copy{position:absolute;top:50%;transform:translateY(-50%);width:52%;max-width:540px;display:flex;flex-direction:column;align-items:flex-start;gap:0}
+.heritage-home-copy strong{display:block;font-size:clamp(28px,4vw,48px);line-height:1.02}
+.heritage-home-copy i{font-size:12px;gap:12px;align-items:center}
+.search{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 14px;margin:16px 0}
+.search>span{display:grid;place-items:center;flex:0 0 20px;width:20px;height:20px;font-size:21px;line-height:1}
+.search input{width:100%;min-width:0;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;min-height:42px;padding:0;font-size:13px}
+.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+.quick-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:13px 8px;min-width:0;text-align:center}
+.quick-card span{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;border-radius:50%;line-height:1;font-size:22px}
+.quick-card b{font-size:11px;line-height:1.3;max-width:100%;overflow-wrap:anywhere}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:24px 0 12px}
+.section-head h2{margin:0;font-size:clamp(18px,2vw,23px);line-height:1.2}
+.section-head>button{flex:0 0 auto}
+.discover-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.discover-card{position:relative;display:block;min-width:0;height:clamp(160px,19vw,220px);padding:0;text-align:left}
+.discover-card>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.discover-overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:5px;padding:15px;background:linear-gradient(180deg,transparent 15%,rgba(25,14,10,.78))}
+.discover-overlay small{font-size:9px;letter-spacing:.13em}
+.discover-overlay b{font-family:'Playfair Display',Georgia,serif;font-size:20px;line-height:1.15}
+.discover-overlay i{font-size:10px;font-style:normal}
+.image-note{font-size:10px;line-height:1.5;color:#8c7868;margin:10px 0 22px}
+.page{min-width:0}
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.page-head>div{min-width:0}
+.page-head h1{font-size:clamp(25px,3vw,34px);line-height:1.1;margin:0 0 6px}
+.page-head p:last-child{line-height:1.5}
+.primary,.outline,.soft-btn,.text-btn,.call{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;line-height:1.2}
+.primary.small{min-height:36px;padding:0 14px}
+.full{width:100%}
+.quick-card,.discover-card,.listing,.family-card,.service-cat,.bottom-nav button{transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.listing-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.listing{min-width:0}
+.listing-img{display:grid;place-items:center;overflow:hidden}
+.listing-body{min-width:0}
+.listing-title{overflow-wrap:anywhere}
+.service-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.service-cat{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px 6px}
+.service-cat span{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:#f8e6c8}
+.service-cat b{font-size:11px;text-align:center;overflow-wrap:anywhere}
+.family-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left}
+.family-info{flex:1;min-width:0}
+.family-info h3,.family-info p,.family-info small{overflow-wrap:anywhere}
+.modal-backdrop{padding:18px;align-items:center;justify-content:center}
+.modal{width:min(100%,560px);max-height:min(88svh,850px);overflow:auto}
+.modal-head{position:sticky;top:0;z-index:2;background:#fffaf3}
+.form label,.auth-form-modern label{display:flex;flex-direction:column;gap:7px}
+.form input,.form select,.form textarea{width:100%;min-width:0}
+.auth-form-modern label{margin-bottom:13px}
+.auth-main-btn{width:100%;min-height:48px}
+.bottom-nav button{min-width:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+.bottom-nav button span{line-height:1}
+@media(min-width:900px){
+ .content{padding-top:20px}
+ .quick-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+ .quick-card{min-height:112px}
+ .listing-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .content{padding:10px 14px 100px}
+ .topbar{gap:8px}
+ .brand-mark{width:36px;height:36px;flex-basis:36px}
+ .brand{font-size:15px}
+ .brand-sub{font-size:8px;letter-spacing:.06em}
+ .top-actions{gap:5px}
+ .icon-btn{width:36px;height:36px;flex-basis:36px}
+ .avatar.mini{width:34px;height:34px;flex-basis:34px}
+ .hero{padding:15px 0 12px;gap:12px}
+ .hero h1{font-size:26px}
+ .hero-copy{font-size:12px}
+ .hero-symbol{width:38px;height:38px;flex-basis:38px}
+ .heritage-home-banner{height:215px!important;min-height:215px}
+ .heritage-home-copy{width:76%;max-width:76%;left:18px;right:12px}
+ .heritage-home-copy strong{font-size:clamp(26px,7vw,35px)}
+ .heritage-home-copy small{font-size:8px}
+ .quick-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+ .quick-card{min-height:90px;padding:10px 5px}
+ .quick-card span{width:38px;height:38px;flex-basis:38px;font-size:19px}
+ .quick-card b{font-size:10px}
+ .discover-strip{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .discover-card{height:142px}
+ .discover-overlay{padding:9px;gap:4px}
+ .discover-overlay small{font-size:7px}
+ .discover-overlay b{font-size:15px}
+ .discover-overlay i{font-size:8px}
+ .section-head{margin-top:20px}
+ .section-head h2{font-size:18px}
+ .service-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+ .service-cat{padding:10px 3px}
+ .service-cat span{width:34px;height:34px}
+ .service-cat b{font-size:9px}
+ .listing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .page-head{align-items:flex-start}
+ .page-head h1{font-size:26px}
+ .modal-backdrop{padding:10px}
+ .modal{border-radius:20px}
+}
+@media(max-width:390px){
+ .brand-sub{letter-spacing:.015em;font-size:7px}
+ .brand{font-size:14px}
+ .content{padding-left:11px;padding-right:11px}
+ .heritage-home-banner{height:195px!important;min-height:195px}
+ .quick-grid{gap:7px}
+ .quick-card{min-height:84px}
+ .discover-strip{grid-template-columns:1fr;gap:10px}
+ .discover-card{height:155px}
+ .service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .page-head{gap:8px}
+}
