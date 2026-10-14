@@ -1595,7 +1595,7 @@ export default function Home() {
           <button type="button" className="heritage-home-banner" onClick={() => setActive('community')} aria-label="Explore our Jain community">
             <img src="https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg" alt="Ornate Indian temple architecture at golden hour" />
             <span className="heritage-home-shade" />
-            <span className="heritage-home-copy"><small>FAITH · FAMILY · COMMUNITY</small><strong>Our people.<br/>Our heritage.<br/><em>Our future.</em></strong><i>Discover the community <b>↗</b></i></span>
+            <span className="heritage-home-copy"><small>FAITH · FAMILY · COMMUNITY</small><strong>Faith.<br/>Family.<br/><em>Community.</em></strong><i>Discover the community <b>↗</b></i></span>
           </button>
           <div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, services, events..." /></div>
           <div className="quick-grid">{quickActions.map(([label, icon]) => <button key={label} className="quick-card" onClick={() => setActive(label === 'Community' ? 'community' : label === 'Family Directory' ? 'family' : label === 'Marketplace' ? 'marketplace' : label === 'Business Directory' ? 'services' : label === 'Events' ? 'events' : label === 'Messages' ? 'messages' : 'community')}><span>{icon}</span><b>{label}</b></button>)}</div>
@@ -1719,7 +1719,7 @@ export default function Home() {
       {showLogin && <Modal title={authMode === 'signup' ? 'Create your account' : 'Welcome back'} close={() => setShowLogin(false)}>
         <form onSubmit={handleEmailAuth} className="form">
           <div className="login-intro">
-            <div className="brand-mark big">☀</div>
+            <div className="brand-mark big"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
             <p>{authMode === 'signup' ? 'Create a free Kantha Pranth account with your email.' : 'Sign in to your Jain community account.'}</p>
           </div>
           <label>Email address
@@ -1895,7 +1895,7 @@ function AuthScreen({
         <div className="auth-art-brand"><img src="/kantha-pranth-emblem.svg" alt="" /><b>KANTHA PRANTH</b></div>
         <div className="welcome-art-center">
           <div className="welcome-emblem"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
-          <p>ONE COMMUNITY. MANY CONNECTIONS.</p>
+          <p>JAIN COMMUNITY · BENGALURU</p>
           <h1>A stronger community<br/>for <em>generations.</em></h1>
           <span>A beautiful, trusted space for Jain families across Bengaluru to connect, celebrate our heritage, and support one another.</span>
         </div>
@@ -1925,7 +1925,7 @@ function AuthScreen({
 function ProfileSetupScreen({ userName, setUserName, profileLocality, setProfileLocality, onSubmit, busy }) {
   return <main className="auth-screen">
     <div className="auth-card profile-setup-card">
-      <div className="auth-logo">🙏</div>
+      <div className="auth-logo"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
       <p className="eyebrow">ONE LAST STEP</p>
       <h1>Complete your profile</h1>
       <p className="auth-copy">Tell the community who you are and where you're based. You can change this later.</p>
