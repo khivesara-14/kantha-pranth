@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
+const EMBLEM = '/kantha-pranth-emblem.svg';
+const TEMPLE_PHOTO = 'https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg?width=720';
+
 export default function AuthGate({ children }) {
   const [checking, setChecking] = useState(true);
   const [session, setSession] = useState(null);
@@ -11,6 +14,8 @@ export default function AuthGate({ children }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [guestMode, setGuestMode] = useState(false);
   const [dob, setDob] = useState('');
   const [maritalStatus, setMaritalStatus] = useState('');
   const [bloodGroup, setBloodGroup] = useState('');
@@ -34,6 +39,8 @@ export default function AuthGate({ children }) {
     let mounted = true;
     supabase.auth.getSession().then(({ data }) => {
       if (mounted) {
+        const savedGuest = typeof window !== 'undefined' && localStorage.getItem('kp-guest') === '1';
+        setGuestMode(savedGuest);
         setSession(data?.session || null);
         setChecking(false);
       }
@@ -45,7 +52,10 @@ export default function AuthGate({ children }) {
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (mounted) setSession(nextSession || null);
+      if (mounted) {
+        setSession(nextSession || null);
+        if (nextSession) setGuestMode(false);
+      }
     });
 
     return () => {
@@ -201,25 +211,22 @@ export default function AuthGate({ children }) {
   if (checking) {
     return (
       <main style={styles.splashScreen}>
-        <div style={styles.splashLogo}>☀</div>
+        <div style={styles.splashLogo}><img src={EMBLEM} alt="Kantha Pranth temple emblem" /></div>
         <div style={styles.splashName}>KANTHA PRANTH</div>
         <div style={styles.splashSub}>Jain Community · Bengaluru</div>
       </main>
     );
   }
 
-  if (session) return children;
+  if (session || guestMode) return children;
 
   if (screen === 'welcome') {
     return (
       <main className="auth-screen">
         <section className="auth-mobile-shell welcome-shell">
-          <div className="welcome-illustration" aria-label="Kantha Pranth community welcome">
-            <div className="temple-line" aria-hidden="true">☼</div>
-            <div className="temple-base">KANTHA<br />PRANTH</div>
-          </div>
+          <div className="kp-welcome-photo-wrap"><img className="kp-welcome-photo" src={TEMPLE_PHOTO} alt="Jain temple in Bengaluru" /></div>
 
-          <div className="welcome-logo" aria-label="Kantha Pranth logo" role="img">☀</div>
+          <div className="welcome-logo kp-emblem-disc" aria-label="Kantha Pranth temple emblem"><img src={EMBLEM} alt="" /></div>
           <p className="eyebrow">JAIN COMMUNITY · BENGALURU</p>
           <h1>KANTHA PRANTH</h1>
           <p className="welcome-tagline">A trusted platform for our Jain community</p>
@@ -257,6 +264,13 @@ export default function AuthGate({ children }) {
             Get Started
           </button>
 
+          <button type="button" className="kp-guest-btn" onClick={() => {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('kp-guest', '1');
+              window.dispatchEvent(new Event('kp-guest-change'));
+            }
+            setGuestMode(true);
+          }}>Explore as a guest</button>
           <small className="welcome-foot">Built for the Jain Community of Bengaluru</small>
         </section>
       </main>
@@ -267,7 +281,7 @@ export default function AuthGate({ children }) {
     <main className="auth-screen auth-login-screen">
       <section className="auth-mobile-shell">
         <button type="button" style={styles.back} onClick={() => setScreen('welcome')}>← Back</button>
-        <div style={styles.welcomeLogo}>☀</div>
+        <div style={styles.welcomeLogo} className="kp-emblem-disc"><img src={EMBLEM} alt="Kantha Pranth temple emblem" /></div>
         <div style={styles.brand}>KANTHA PRANTH</div>
         <h1 style={styles.loginTitle}>{resetMode ? 'Reset your password' : mode === 'signup' ? 'Create your account' : 'Welcome Back'}</h1>
         <p style={styles.loginSub}>{resetMode ? 'Enter your registered email and we will send a password reset link.' : 'Sign in to continue to your Jain community.'}</p>
@@ -278,7 +292,7 @@ export default function AuthGate({ children }) {
           </label>
 
           {!resetMode && <label style={styles.label}>Password
-            <input value={password} onChange={e => setPassword(e.target.value)} style={styles.input} placeholder="Minimum 8 characters" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} />
+            <div className="kp-password-row"><input value={password} onChange={e => setPassword(e.target.value)} style={styles.input} placeholder="Minimum 8 characters" type={showPassword ? "text" : "password"} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} /><button type="button" className="kp-show-password" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? "Hide" : "Show"}</button></div>
           </label>}
           {!resetMode && mode === 'login' && <div style={{ display:'flex', justifyContent:'flex-end', marginTop:-7, marginBottom:4 }}>
             <button type="button" disabled={busy} onClick={() => { setMessage(''); setEmailConfirmationRequired(false); setResetMode(true); }} style={{ border:0, background:'transparent', color:'#7c1d25', fontSize:13, fontWeight:800, textDecoration:'underline', cursor:'pointer', padding:'6px 0' }}>Forgot password?</button>
@@ -355,7 +369,7 @@ export default function AuthGate({ children }) {
 
 const styles = {
   splashScreen: { minHeight:'100vh', background:'#f8f4ed', display:'grid', placeContent:'center', textAlign:'center', color:'#7c1d25', fontFamily:'Arial,sans-serif' },
-  splashLogo: { fontSize:48, marginBottom:10 },
+  splashLogo: { width:96, height:96, margin:'0 auto 18px', display:'grid', placeItems:'center' },
   splashName: { fontSize:20, fontWeight:800, letterSpacing:'.14em' },
   splashSub: { marginTop:8, fontSize:11, color:'#766b65' },
   welcomeScreen: { minHeight:'100vh', background:'#f8f4ed', display:'flex', justifyContent:'center', overflowY:'auto', fontFamily:'Arial,sans-serif', color:'#241b18' },
@@ -363,7 +377,7 @@ const styles = {
   illustration: { width:'100%', height:112, display:'grid', placeItems:'center', color:'#7c1d25', marginBottom:4 },
   templeLine: { fontSize:44, lineHeight:1, color:'#b58a42' },
   templeBase: { marginTop:-2, textAlign:'center', fontSize:10, fontWeight:800, letterSpacing:'.22em', lineHeight:1.35, color:'#7c1d25' },
-  welcomeLogo: { width:62, height:62, borderRadius:20, display:'grid', placeItems:'center', background:'linear-gradient(145deg,#e9c77f,#9a6a22)', color:'#fff', fontSize:31, boxShadow:'0 10px 25px rgba(100,65,25,.16)', marginBottom:12 },
+  welcomeLogo: { width:72, height:72, borderRadius:'50%', display:'grid', placeItems:'center', margin:'-30px auto 14px', position:'relative' },
   eyebrow: { margin:'0 0 7px', fontSize:10, fontWeight:800, letterSpacing:'.16em', color:'#8b6b4a', textAlign:'center' },
   welcomeTitle: { margin:'0', color:'#7c1d25', fontSize:28, letterSpacing:'.08em', fontWeight:900, textAlign:'center' },
   tagline: { margin:'9px 0 12px', color:'#766b65', fontSize:13, textAlign:'center' },
