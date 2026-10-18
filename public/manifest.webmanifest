@@ -1,0 +1,10 @@
+{
+  "name": "Kantha Pranth — Bengaluru Jain Community",
+  "short_name": "Kantha Pranth",
+  "description": "Connect, discover, help and support the Jain community in Bengaluru.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f4ed",
+  "theme_color": "#781e29",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
