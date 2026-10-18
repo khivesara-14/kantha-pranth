@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase';
 
 const EMBLEM = '/kantha-pranth-emblem.svg';
 const TEMPLE_PHOTO = 'https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg?width=720';
+const enableGoogleAuth = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH === 'true';
+const enableAppleAuth = process.env.NEXT_PUBLIC_ENABLE_APPLE_AUTH === 'true';
 
 export default function AuthGate({ children }) {
   const [checking, setChecking] = useState(true);
@@ -74,6 +76,27 @@ export default function AuthGate({ children }) {
       }
     }).catch(() => {});
   }, [session?.access_token, session?.user?.id, session?.guest]);
+
+
+  async function signInWithProvider(provider) {
+    if (!supabase) {
+      setMessage('Authentication is not configured yet.');
+      return;
+    }
+    setBusy(true);
+    setMessage('');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: window.location.origin }
+      });
+      if (error) setMessage(error.message || 'Could not start social sign-in.');
+    } catch (error) {
+      setMessage(error?.message || 'Could not start social sign-in.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -358,6 +381,15 @@ export default function AuthGate({ children }) {
             {busy ? 'Please wait…' : resetMode ? 'Send reset link' : mode === 'signup' ? 'Create account' : 'Sign in'}
           </button>
         </form>
+
+
+        {!resetMode && mode === 'login' && (enableGoogleAuth || enableAppleAuth) && (
+          <div className="kp-social-auth">
+            <div className="kp-divider">or continue with</div>
+            {enableGoogleAuth && <button type="button" className="kp-oauth-btn" disabled={busy} onClick={() => signInWithProvider('google')}><span aria-hidden="true">G</span> Continue with Google</button>}
+            {enableAppleAuth && <button type="button" className="kp-oauth-btn" disabled={busy} onClick={() => signInWithProvider('apple')}><span aria-hidden="true">●</span> Continue with Apple</button>}
+          </div>
+        )}
 
         {resetMode ? <button type="button" disabled={busy} onClick={() => { setMessage(''); setResetMode(false); }} style={styles.link}>Back to sign in</button> : <button type="button" disabled={busy} onClick={() => { setMessage(''); setEmailConfirmationRequired(false); setMode(mode === 'login' ? 'signup' : 'login'); }} style={styles.link}>
           {mode === 'login' ? 'New to Kantha Pranth? Create an account' : 'Already have an account? Sign in'}
