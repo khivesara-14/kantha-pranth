@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="108" fill="#7a1424"/><svg x="86" y="86" width="340" height="340" viewBox="0 0 240 240">
+  <defs>
+    <linearGradient id="gold" x1="26" y1="8" x2="214" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF1BD"/><stop offset=".28" stop-color="#EBC777"/><stop offset=".62" stop-color="#BD8132"/><stop offset="1" stop-color="#F8DFA0"/>
+    </linearGradient>
+    <linearGradient id="ray" x1="120" y1="3" x2="120" y2="55" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBE7AB"/><stop offset="1" stop-color="#C38C3B"/>
+    </linearGradient>
+  </defs>
+  <!-- Fine, evenly spaced sunburst rays -->
+  <g fill="url(#ray)" stroke="url(#gold)" stroke-width="1.15" stroke-linejoin="round">
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(22.5 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(45 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(67.5 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(90 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(112.5 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(135 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(157.5 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(180 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(202.5 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(225 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(247.5 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(270 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(292.5 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(315 120 120)"/>
+    <path d="M120 3 Q133 22 120 43 Q107 22 120 3Z" transform="rotate(337.5 120 120)"/>
+  </g>
+  <circle cx="120" cy="120" r="77" stroke="url(#gold)" stroke-width="4"/>
+  <circle cx="120" cy="120" r="70" stroke="url(#gold)" stroke-width="1.5"/>
+  <!-- Ornate Jain temple silhouette: kalash, stepped shikhara, mandapa and sanctum -->
+  <g stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120 54 C116 58 116 61 120 64 C124 61 124 58 120 54Z" fill="url(#gold)" stroke-width="1.5"/>
+    <path d="M120 64V70 M115 70H125" stroke-width="2"/>
+    <path d="M112 75 Q120 68 128 75 L131 82 Q120 78 109 82Z" fill="url(#gold)" stroke-width="1.8"/>
+    <path d="M108 82 Q120 77 132 82 L136 90 Q120 85 104 90Z" fill="url(#gold)" stroke-width="1.8"/>
+    <path d="M104 90 Q120 85 136 90 L139 98 Q120 94 101 98Z" fill="url(#gold)" stroke-width="1.8"/>
+    <path d="M101 98H139 L143 106H97Z" fill="url(#gold)" stroke-width="1.8"/>
+    <path d="M97 106H143V111H97Z" fill="url(#gold)" stroke-width="1.8"/>
+    <path d="M91 111H149V117H91Z" fill="url(#gold)" stroke-width="1.8"/>
+    <path d="M87 117H153V122H87Z" fill="url(#gold)" stroke-width="1.8"/>
+    <path d="M93 122V151H147V122" stroke-width="2.5"/>
+    <path d="M88 151H152V157H88Z" fill="url(#gold)" stroke-width="1.8"/>
+    <path d="M82 157H158V163H82Z" fill="url(#gold)" stroke-width="1.8"/>
+    <path d="M78 163H162V168H78Z" fill="url(#gold)" stroke-width="1.8"/>
+    <!-- carved tower tiers -->
+    <path d="M111 79L108 83 M129 79L132 83 M106 88L103 92 M134 88L137 92 M101 103H139 M96 114H144" stroke="#7E4A1D" stroke-opacity=".8" stroke-width="1.1"/>
+    <!-- arched sanctum doorway -->
+    <path d="M109 151V137C109 130 114 125 120 125C126 125 131 130 131 137V151Z" fill="#4A0E13" stroke-width="2.3"/>
+    <path d="M114 151V138C114 134 116 131 120 131C124 131 126 134 126 138V151" stroke-width="1.4"/>
+    <path d="M120 133V151" stroke-width="1.2"/>
+    <!-- side pillars and capitals -->
+    <path d="M99 126V151 M103 126V151 M137 126V151 M141 126V151" stroke-width="2"/>
+    <path d="M96 124H106 M134 124H144 M96 153H106 M134 153H144" stroke-width="2.2"/>
+    <!-- ornamental base and central jewel -->
+    <path d="M91 173H149 M99 178H141" stroke-width="2.4"/>
+    <path d="M120 169L124 173L120 177L116 173Z" fill="url(#gold)" stroke-width="1"/>
+  </g>
+</svg></svg>
