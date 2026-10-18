@@ -211,7 +211,7 @@ export default function AuthGate({ children }) {
   if (checking) {
     return (
       <main style={styles.splashScreen}>
-        <div style={styles.splashLogo}><img src={EMBLEM} alt="Kantha Pranth temple emblem" /></div>
+        <div style={styles.splashLogo} className="kp-splash-logo"><img src={EMBLEM} alt="Kantha Pranth temple emblem" /></div>
         <div style={styles.splashName}>KANTHA PRANTH</div>
         <div style={styles.splashSub}>Jain Community · Bengaluru</div>
       </main>
