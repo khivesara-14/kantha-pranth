@@ -1607,19 +1607,19 @@ export default function Home() {
             <div className="section-head"><h2>Made for our community</h2><span className="discover-kicker">CONNECT · CELEBRATE · SUPPORT</span></div>
             <div className="discover-strip">
               <button type="button" className="discover-card" onClick={() => setActive('community')}>
-                <img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=640&q=80" alt="Gommateshwara statue on Vindhyagiri hill, Shravanabelagola" loading="lazy" />
+                <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Shravanabelagola_Bahubali_wideframe.jpg?width=640" alt="Gommateshwara statue on Vindhyagiri hill, Shravanabelagola" loading="lazy" />
                 <span className="discover-overlay"><small>CONNECT</small><b>Community</b><i>Meet your people ↗</i></span>
               </button>
               <button type="button" className="discover-card" onClick={() => setActive('events')}>
-                <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=640&q=80" alt="Bahubali statue at Shravanabelagola, home of the Mahamastakabhisheka festival" loading="lazy" />
+                <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Gomateswara.jpg?width=640" alt="Bahubali statue at Shravanabelagola, home of the Mahamastakabhisheka festival" loading="lazy" />
                 <span className="discover-overlay"><small>COME TOGETHER</small><b>Events</b><i>See what's coming ↗</i></span>
               </button>
               <button type="button" className="discover-card" onClick={() => setActive('services')}>
-                <img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=640&q=80" alt="Jain temple in Jayanagar, Bengaluru" loading="lazy" />
+                <img src="https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg?width=640" alt="Jain temple in Jayanagar, Bengaluru" loading="lazy" />
                 <span className="discover-overlay"><small>SHOP LOCAL</small><b>Services</b><i>Discover nearby ↗</i></span>
               </button>
             </div>
-            <p className="image-note">Illustrative photography · Help our community grow by sharing updates, events and trusted local services.</p>
+            <p className="image-note">Photos: Wikimedia Commons (Shravanabelagola and Bengaluru Jain heritage photographs) · Help our community grow by sharing updates, events and trusted local services.</p>
           </section>
           <SectionHeader title="Latest updates" action="View all" onClick={() => setActive('community')} />
           {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onShareInApp={shareInAppItem} />)}
