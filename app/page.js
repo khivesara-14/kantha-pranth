@@ -137,8 +137,9 @@ export default function Home() {
           await loadNotifications(data.session.user.id);
           await loadListings();
         } else {
-          setAuthenticated(false);
-          setGuestMode(false);
+          const isGuest = typeof window !== 'undefined' && localStorage.getItem('kp-guest') === '1';
+          setAuthenticated(isGuest);
+          setGuestMode(isGuest);
           setNeedsProfile(false);
           await loadListings();
         }
@@ -150,9 +151,10 @@ export default function Home() {
       });
 
       const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-        setAuthenticated(!!session);
+        const guestFlag = !session && typeof window !== 'undefined' && localStorage.getItem('kp-guest') === '1';
+        setAuthenticated(!!session || guestFlag);
         setCurrentUserId(session?.user?.id || '');
-        setGuestMode(false);
+        setGuestMode(guestFlag);
         if (session) {
           // Defer Supabase queries until after the auth callback returns.
           // Awaiting Supabase queries inside onAuthStateChange can deadlock auth state updates.
@@ -1389,6 +1391,8 @@ export default function Home() {
     setGuestMode(false);
     setUserName('');
     localStorage.removeItem('kp-demo');
+    localStorage.removeItem('kp-guest');
+    window.dispatchEvent(new Event('kp-guest-change'));
     setActive('home');
   }
 
@@ -1590,7 +1594,7 @@ export default function Home() {
         {active === 'home' && <>
           <section className="hero">
             <div><p className="eyebrow">YOUR COMMUNITY, CLOSER</p><h1>{new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'},<br /><span>{userName || 'there'}</span> 👋</h1><p className="hero-copy">Discover what's happening around your Jain community in Bengaluru.</p></div>
-            <div className="hero-symbol">🙏</div>
+            <div className="hero-symbol"><img src="/kantha-pranth-emblem.svg" alt="" /></div>
           </section>
           <button type="button" className="heritage-home-banner" onClick={() => setActive('community')} aria-label="Explore our Jain community">
             <img src="https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg" alt="Ornate Indian temple architecture at golden hour" />
@@ -1603,15 +1607,15 @@ export default function Home() {
             <div className="section-head"><h2>Made for our community</h2><span className="discover-kicker">CONNECT · CELEBRATE · SUPPORT</span></div>
             <div className="discover-strip">
               <button type="button" className="discover-card" onClick={() => setActive('community')}>
-                <img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=640&q=80" alt="People spending time together" loading="lazy" />
+                <img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=640&q=80" alt="Gommateshwara statue on Vindhyagiri hill, Shravanabelagola" loading="lazy" />
                 <span className="discover-overlay"><small>CONNECT</small><b>Community</b><i>Meet your people ↗</i></span>
               </button>
               <button type="button" className="discover-card" onClick={() => setActive('events')}>
-                <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=640&q=80" alt="A beautifully arranged community gathering" loading="lazy" />
+                <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=640&q=80" alt="Bahubali statue at Shravanabelagola, home of the Mahamastakabhisheka festival" loading="lazy" />
                 <span className="discover-overlay"><small>COME TOGETHER</small><b>Events</b><i>See what's coming ↗</i></span>
               </button>
               <button type="button" className="discover-card" onClick={() => setActive('services')}>
-                <img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=640&q=80" alt="A bright modern workspace" loading="lazy" />
+                <img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=640&q=80" alt="Jain temple in Jayanagar, Bengaluru" loading="lazy" />
                 <span className="discover-overlay"><small>SHOP LOCAL</small><b>Services</b><i>Discover nearby ↗</i></span>
               </button>
             </div>
@@ -1904,7 +1908,7 @@ function AuthScreen({
       <section className="auth-entry-panel welcome-panel">
         <div className="welcome-content">
           <div className="welcome-brand-lockup"><img src="/kantha-pranth-emblem.svg" alt="" /><div><b>Kantha Pranth</b><small>JAIN COMMUNITY · BENGALURU</small></div></div>
-          <p className="auth-overline">NAMASTE & WELCOME</p>
+          <p className="auth-overline">JAI JINENDRA</p>
           <h2>Our people.<br/>Our heritage.<br/><em>Our community.</em></h2>
           <p className="welcome-description">Find familiar faces, local businesses, community events, and ways to help — all in one place.</p>
           <div className="welcome-feature-list">
