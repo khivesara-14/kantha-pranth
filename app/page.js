@@ -31,7 +31,7 @@ const events = [
 ];
 
 const quickActions = [
-  ['Community', '👥'], ['Events', '📅'], ['Marketplace', '🛒'], ['Business Directory', '🏢'], ['Family Directory', '👪'], ['Messages', '💬'],
+  ['Community', '♟'], ['Events', '▦'], ['Marketplace', '🛒'], ['Business Directory', '▦'], ['Family Directory', '♙'], ['Messages', '●'],
 ];
 
 function Avatar({ initials, large = false }) { return <div className={`avatar ${large ? 'avatar-lg' : ''}`}>{initials}</div>; }
@@ -1511,7 +1511,7 @@ export default function Home() {
   }
 
   const nav = [
-    ['home', '🏠', 'Home'], ['community', '👥', 'Community'], ['add', '⊕', 'Add'], ['messages', '💬', 'Messages'], ['profile', '👤', 'Profile'],
+    ['home', '⌂', 'Home'], ['community', '◎', 'Community'], ['family', '👨‍👩‍👧‍👦', 'Family'], ['marketplace', '🛒', 'Market'], ['messages', '✉', 'Messages'], ['profile', '◉', 'Profile'],
   ];
 
   useEffect(() => {
@@ -1574,11 +1574,11 @@ export default function Home() {
   return (
     <main className="app">
       <header className="topbar">
-        {active === 'home' ? <div className="kp-greet"><small>{new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 17 ? 'Good Afternoon' : 'Good Evening'}</small><b>{userName || 'Friend'} 👋</b><span>A stronger community, together.</span></div> : <div className="brand-wrap">
+        <div className="brand-wrap">
           <div className="brand-mark"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
           <div><div className="brand">KANTHA PRANTH</div><div className="brand-sub">Jain Community · Bengaluru</div></div>
-        </div>}
-        <div className="top-actions" style={{ position:'relative' }}><button type="button" className="icon-btn" aria-label="Notifications" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen(x => !x); loadNotifications(); if (!notificationOpen) markNotificationsRead(); }}>🔔{unreadNotifications > 0 && <span style={{ position:'absolute', top:0, right:32, minWidth:16, height:16, borderRadius:99, background:'#7c1d25', color:'#fff', fontSize:9, display:'grid', placeItems:'center', padding:'0 3px' }}>{unreadNotifications}</span>}</button><button type="button" className="avatar mini" aria-label="Open profile" onClick={() => setActive('profile')}>{initialsFromName(userName || 'Guest')}</button>{notificationOpen && <div style={{ position:'absolute', right:0, top:48, width:300, maxWidth:'calc(100vw - 32px)', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:16, padding:12, boxShadow:'0 16px 40px rgba(55,30,20,.15)', zIndex:50 }}><div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}><b>Notifications</b><button className="text-btn" onClick={markNotificationsRead}>Mark all read</button></div>{notifications.length ? notifications.map(n => <button key={n.id} type="button" onClick={() => { const match = posts.find(p => String(p.id) === String(n.post_id)); if (match) { setActive('community'); setSelectedPost(match); setNotificationOpen(false); } }} style={{ width:'100%', textAlign:'left', padding:'10px 4px', border:0, borderTop:'1px solid #f0e7df', background:'transparent', cursor:n.post_id ? 'pointer' : 'default', fontSize:12 }}>{n.message}<small style={{ display:'block', color:'#9a8e86', marginTop:3 }}>{formatPostTime(n.created_at)}</small></button>) : <small style={{ color:'#8c8179' }}>No notifications yet.</small>}</div>}</div>
+        </div>
+        <div className="top-actions" style={{ position:'relative' }}><button type="button" className="icon-btn" aria-label="Notifications" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen(x => !x); loadNotifications(); if (!notificationOpen) markNotificationsRead(); }}>♧{unreadNotifications > 0 && <span style={{ position:'absolute', top:0, right:32, minWidth:16, height:16, borderRadius:99, background:'#7c1d25', color:'#fff', fontSize:9, display:'grid', placeItems:'center', padding:'0 3px' }}>{unreadNotifications}</span>}</button><button type="button" className="avatar mini" aria-label="Open profile" onClick={() => setActive('profile')}>{initialsFromName(userName || 'Guest')}</button>{notificationOpen && <div style={{ position:'absolute', right:0, top:48, width:300, maxWidth:'calc(100vw - 32px)', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:16, padding:12, boxShadow:'0 16px 40px rgba(55,30,20,.15)', zIndex:50 }}><div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}><b>Notifications</b><button className="text-btn" onClick={markNotificationsRead}>Mark all read</button></div>{notifications.length ? notifications.map(n => <button key={n.id} type="button" onClick={() => { const match = posts.find(p => String(p.id) === String(n.post_id)); if (match) { setActive('community'); setSelectedPost(match); setNotificationOpen(false); } }} style={{ width:'100%', textAlign:'left', padding:'10px 4px', border:0, borderTop:'1px solid #f0e7df', background:'transparent', cursor:n.post_id ? 'pointer' : 'default', fontSize:12 }}>{n.message}<small style={{ display:'block', color:'#9a8e86', marginTop:3 }}>{formatPostTime(n.created_at)}</small></button>) : <small style={{ color:'#8c8179' }}>No notifications yet.</small>}</div>}</div>
       </header>
 
       <section className="content">
@@ -1599,7 +1599,7 @@ export default function Home() {
           <button type="button" className="heritage-home-banner" onClick={() => setActive('community')} aria-label="Explore our Jain community">
             <img src="https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg" alt="Ornate Indian temple architecture at golden hour" />
             <span className="heritage-home-shade" />
-            <span className="heritage-home-copy"><small>FAITH · FAMILY · COMMUNITY</small><strong>Faith.<br/>Family.<br/><em>Community.</em></strong><i>Rooted in values. Growing together.</i></span>
+            <span className="heritage-home-copy"><small>FAITH · FAMILY · COMMUNITY</small><strong>Faith.<br/>Family.<br/><em>Community.</em></strong><i>Discover the community <b>↗</b></i></span>
           </button>
           <div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, services, events..." /></div>
           <div className="quick-grid">{quickActions.map(([label, icon]) => <button key={label} className="quick-card" onClick={() => setActive(label === 'Community' ? 'community' : label === 'Family Directory' ? 'family' : label === 'Marketplace' ? 'marketplace' : label === 'Business Directory' ? 'services' : label === 'Events' ? 'events' : label === 'Messages' ? 'messages' : 'community')}><span>{icon}</span><b>{label}</b></button>)}</div>
@@ -1620,11 +1620,11 @@ export default function Home() {
               </button>
             </div>
             <p className="image-note">Photos: Wikimedia Commons (Shravanabelagola and Bengaluru Jain heritage photographs) · Help our community grow by sharing updates, events and trusted local services.</p>
-          </section>          <SectionHeader title="Upcoming Events" action="View all" onClick={() => setActive('events')} />
-          <EventCard event={communityEvents[0] || events[0]} onClick={() => setSelectedEvent(communityEvents[0] || events[0])} />
-
+          </section>
           <SectionHeader title="Latest updates" action="View all" onClick={() => setActive('community')} />
           {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onShareInApp={shareInAppItem} />)}
+          <SectionHeader title="Coming up" action="All events" onClick={() => setActive('events')} />
+          <EventCard event={communityEvents[0] || events[0]} onClick={() => setSelectedEvent(communityEvents[0] || events[0])} />
         </>}
 
         {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋ Post</button>}><div className="search" style={{ marginTop:12 }}><span>⌕</span><input value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="Search community posts..." /></div><div className="filter-row" style={{ marginTop:10 }}>{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onPostChanged={loadPosts} onProfile={openMemberProfile} onShareInApp={shareInAppItem} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
@@ -1697,7 +1697,7 @@ export default function Home() {
       </section>
 
       <button type="button" className="fab" aria-label="Create a community post" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋</button>
-      <nav className="bottom-nav" aria-label="Main navigation">{nav.map(([id, icon, label]) => <button type="button" key={id} className={active === id ? 'selected' : ''} aria-current={active === id ? 'page' : undefined} aria-label={label} onClick={() => { if (id === 'add') { isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts'); return; } setActive(id); setNotificationOpen(false); }}><span aria-hidden="true">{icon}</span><small>{label}</small></button>)}</nav>
+      <nav className="bottom-nav" aria-label="Main navigation">{nav.map(([id, icon, label]) => <button type="button" key={id} className={active === id ? 'selected' : ''} aria-current={active === id ? 'page' : undefined} aria-label={label} onClick={() => { setActive(id); setNotificationOpen(false); }}><span aria-hidden="true">{icon}</span><small>{label}</small></button>)}</nav>
 
       {showEditProfile && <Modal title="Edit profile" close={() => setShowEditProfile(false)}><form onSubmit={saveEditableProfile} className="form">
         <label>Full name<input value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name:e.target.value})} required /></label>
