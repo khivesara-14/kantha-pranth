@@ -31,7 +31,7 @@ const events = [
 ];
 
 const quickActions = [
-  ['Community', '♟'], ['Events', '▦'], ['Marketplace', '🛒'], ['Business Directory', '▦'], ['Family Directory', '♙'], ['Messages', '●'],
+  ['Community', '📰'], ['Family', '👨‍👩‍👧‍👦'], ['Events', '📅'], ['Buy & Sell', '🛒'], ['Services', '🛠️'], ['Help', '🆘'],
 ];
 
 function Avatar({ initials, large = false }) { return <div className={`avatar ${large ? 'avatar-lg' : ''}`}>{initials}</div>; }
@@ -62,13 +62,8 @@ export default function Home() {
   const [activeConversation, setActiveConversation] = useState(null);
   const [threadMessages, setThreadMessages] = useState([]);
   const [messageDraft, setMessageDraft] = useState('');
-  const [pendingShareMessage, setPendingShareMessage] = useState('');
   const [messageBusy, setMessageBusy] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
-  const [showMessageMemberPicker, setShowMessageMemberPicker] = useState(false);
-  const [messageMembers, setMessageMembers] = useState([]);
-  const [messageMemberSearch, setMessageMemberSearch] = useState('');
-  const [messageMembersLoading, setMessageMembersLoading] = useState(false);
   const [helpRequests, setHelpRequests] = useState([]);
   const [showHelpForm, setShowHelpForm] = useState(false);
   const [helpCategory, setHelpCategory] = useState('Support request');
@@ -137,9 +132,8 @@ export default function Home() {
           await loadNotifications(data.session.user.id);
           await loadListings();
         } else {
-          const isGuest = typeof window !== 'undefined' && localStorage.getItem('kp-guest') === '1';
-          setAuthenticated(isGuest);
-          setGuestMode(isGuest);
+          setAuthenticated(false);
+          setGuestMode(false);
           setNeedsProfile(false);
           await loadListings();
         }
@@ -151,10 +145,9 @@ export default function Home() {
       });
 
       const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-        const guestFlag = !session && typeof window !== 'undefined' && localStorage.getItem('kp-guest') === '1';
-        setAuthenticated(!!session || guestFlag);
+        setAuthenticated(!!session);
         setCurrentUserId(session?.user?.id || '');
-        setGuestMode(guestFlag);
+        setGuestMode(false);
         if (session) {
           // Defer Supabase queries until after the auth callback returns.
           // Awaiting Supabase queries inside onAuthStateChange can deadlock auth state updates.
@@ -181,16 +174,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Storage can be unavailable (private browsing) or full. A persistence
-    // failure must never prevent the community page from rendering.
-    try {
-      localStorage.setItem('kp-demo', JSON.stringify({
-        locality, posts, listings, userName, profileLocality,
-        demoAuthenticated: authenticated
-      }));
-    } catch (error) {
-      console.warn('Could not persist Kantha Pranth demo state:', error);
-    }
+    localStorage.setItem('kp-demo', JSON.stringify({
+      locality, posts, listings, userName, profileLocality,
+      demoAuthenticated: authenticated
+    }));
   }, [locality, posts, listings, userName, profileLocality, authenticated]);
 
   async function openMemberProfile(userId) {
@@ -249,11 +236,11 @@ export default function Home() {
     const name = fd.get('name')?.toString().trim() || '';
     const category = fd.get('category')?.toString() || 'Other';
     const description = fd.get('description')?.toString().trim() || '';
-    const phone = fd.get('phone')?.toString().replace(/\D/g, '') || '';
+    const phone = fd.get('phone')?.toString().replace(/\\D/g, '') || '';
     let website = fd.get('website')?.toString().trim() || '';
     if (name.length < 2) return setToast('Enter your business name');
     if (phone && phone.length !== 10) return setToast('Enter a valid 10-digit contact number');
-    if (website && !/^https?:\/\//i.test(website)) website = `https://${website}`;
+    if (website && !/^https?:\\/\\//i.test(website)) website = `https://${website}`;
     setBusinessBusy(true);
     try {
       const { data: localityRow, error: localityError } = await supabase.from('localities').select('id').eq('name', locality).maybeSingle();
@@ -564,44 +551,7 @@ export default function Home() {
     }
   }
 
-  function shareInAppItem({ title, text, queryKey, id }) {
-    if (!supabase || !authenticated || guestMode || !currentUserId) {
-      setShowLogin(true);
-      setToast('Sign in to share with community members');
-      return;
-    }
-    const url = new URL(window.location.href);
-    url.searchParams.set(queryKey, String(id));
-    setPendingShareMessage('🙏 Sharing from Kantha Pranth: ' + title + '\n' + text + '\nOpen in the app: ' + url.toString());
-    setActive('messages');
-    openMessageMemberPicker();
-  }
-
-  async function openMessageMemberPicker() {
-    if (!supabase || !authenticated || guestMode || !currentUserId) {
-      setShowLogin(true);
-      setToast('Sign in with your account to message community members');
-      return;
-    }
-    setShowMessageMemberPicker(true);
-    setMessageMemberSearch('');
-    setMessageMembersLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, avatar_url, is_verified, locality_id')
-      .neq('id', currentUserId)
-      .order('full_name', { ascending: true })
-      .limit(200);
-    setMessageMembersLoading(false);
-    if (error) {
-      setMessageMembers([]);
-      setToast(error.message || 'Could not load community members');
-      return;
-    }
-    setMessageMembers(data || []);
-  }
-
-  async function startConversationWith(otherUserId, initialDraft = '') {
+  async function startConversationWith(otherUserId) {
     if (!supabase || !authenticated || guestMode || !currentUserId) {
       setShowLogin(true);
       setToast('Sign in with your account to send private messages');
@@ -638,7 +588,6 @@ export default function Home() {
     const prepared = { ...conversation, otherId: otherUserId, otherName: other?.full_name || 'Community Member', otherAvatar: other?.avatar_url || '', otherVerified: !!other?.is_verified };
     setActiveConversation(prepared);
     setActive('messages');
-    if (initialDraft) setMessageDraft(initialDraft);
     await loadThreadMessages(prepared.id);
     await loadConversations();
   }
@@ -721,27 +670,14 @@ export default function Home() {
 
   useEffect(() => {
     if (!authChecked || !posts.length || typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const postId = params.get('post');
-    if (postId) {
-      const match = posts.find(p => String(p.id) === postId);
-      if (match) {
-        setActive('community');
-        setSelectedPost(match);
-      }
+    const postId = new URLSearchParams(window.location.search).get('post');
+    if (!postId) return;
+    const match = posts.find(p => String(p.id) === postId);
+    if (match) {
+      setActive('community');
+      setSelectedPost(match);
     }
   }, [authChecked, posts]);
-
-  useEffect(() => {
-    if (!authChecked || !families.length || typeof window === 'undefined') return;
-    const familyId = new URLSearchParams(window.location.search).get('family');
-    if (!familyId) return;
-    const match = families.find(f => String(f.id) === familyId);
-    if (match && match.visibility !== 'private' && String(selectedFamily?.id) !== familyId) {
-      setActive('family');
-      setSelectedFamily(match);
-    }
-  }, [authChecked, families, selectedFamily]);
 
   function whatsappUrl(phone) {
     if (!phone) return '#';
@@ -1256,22 +1192,6 @@ export default function Home() {
     }
   }
 
-  async function resendConfirmationEmail() {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) return setAuthFeedback('Enter your email address first.');
-    if (!supabase) return setAuthFeedback('Email confirmation is available when Supabase is connected.');
-    setAuthBusy(true);
-    try {
-      const { error } = await supabase.auth.resend({ type: 'signup', email: cleanEmail });
-      setAuthBusy(false);
-      if (error) return setAuthFeedback(error.message || 'Could not resend the confirmation email.');
-      setAuthFeedback('If this account still needs confirmation, a new confirmation email has been sent. Check your inbox and spam folder.');
-    } catch (error) {
-      setAuthBusy(false);
-      setAuthFeedback(error?.message || 'Could not resend the confirmation email. Please try again.');
-    }
-  }
-
   async function resetPassword() {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
@@ -1391,8 +1311,6 @@ export default function Home() {
     setGuestMode(false);
     setUserName('');
     localStorage.removeItem('kp-demo');
-    localStorage.removeItem('kp-guest');
-    window.dispatchEvent(new Event('kp-guest-change'));
     setActive('home');
   }
 
@@ -1477,7 +1395,7 @@ export default function Home() {
     }
     const fd = new FormData(e.currentTarget);
     const title = fd.get('title')?.toString().trim();
-    const rawPrice = fd.get('price')?.toString().replace(/[,₹\s]/g, '');
+    const rawPrice = fd.get('price')?.toString().replace(/[,₹\\s]/g, '');
     const description = fd.get('description')?.toString().trim() || null;
     const category = fd.get('category')?.toString() || 'Other';
     const condition = fd.get('condition')?.toString() || 'Good condition';
@@ -1514,31 +1432,6 @@ export default function Home() {
     ['home', '⌂', 'Home'], ['community', '◎', 'Community'], ['family', '👨‍👩‍👧‍👦', 'Family'], ['marketplace', '🛒', 'Market'], ['messages', '✉', 'Messages'], ['profile', '◉', 'Profile'],
   ];
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const listingId = params.get('listing');
-    const eventId = params.get('event');
-    const postId = params.get('post');
-    if (listingId) {
-      const item = listings.find(entry => String(entry.id) === listingId);
-      if (item && String(selectedListing?.id) !== listingId) setSelectedListing(item);
-    }
-    if (eventId) {
-      const item = communityEvents.find(entry => String(entry.id) === eventId);
-      if (item && String(selectedEvent?.id) !== eventId) setSelectedEvent(item);
-    }
-    if (postId) setActive('community');
-  }, [listings, communityEvents, selectedListing, selectedEvent, posts]);
-
-  useEffect(() => {
-    if (active !== 'community' || typeof window === 'undefined') return;
-    const postId = new URLSearchParams(window.location.search).get('post');
-    if (!postId) return;
-    const target = document.getElementById('post-' + postId);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [active, posts]);
-
   if (!authChecked) return <AuthScreen loading />;
   if (!authenticated) return <AuthScreen
     loading={false}
@@ -1554,11 +1447,8 @@ export default function Home() {
     authFeedback={authFeedback}
     onSubmit={handleEmailAuth}
     onResetPassword={resetPassword}
-    onResendConfirmation={resendConfirmationEmail}
     onGuest={continueAsGuest}
   />;
-
-
 
   if (needsProfile) {
     return <ProfileSetupScreen
@@ -1575,10 +1465,10 @@ export default function Home() {
     <main className="app">
       <header className="topbar">
         <div className="brand-wrap">
-          <div className="brand-mark"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
+          <div className="brand-mark">☀</div>
           <div><div className="brand">KANTHA PRANTH</div><div className="brand-sub">Jain Community · Bengaluru</div></div>
         </div>
-        <div className="top-actions" style={{ position:'relative' }}><button type="button" className="icon-btn" aria-label="Notifications" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen(x => !x); loadNotifications(); if (!notificationOpen) markNotificationsRead(); }}>♧{unreadNotifications > 0 && <span style={{ position:'absolute', top:0, right:32, minWidth:16, height:16, borderRadius:99, background:'#7c1d25', color:'#fff', fontSize:9, display:'grid', placeItems:'center', padding:'0 3px' }}>{unreadNotifications}</span>}</button><button type="button" className="avatar mini" aria-label="Open profile" onClick={() => setActive('profile')}>{initialsFromName(userName || 'Guest')}</button>{notificationOpen && <div style={{ position:'absolute', right:0, top:48, width:300, maxWidth:'calc(100vw - 32px)', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:16, padding:12, boxShadow:'0 16px 40px rgba(55,30,20,.15)', zIndex:50 }}><div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}><b>Notifications</b><button className="text-btn" onClick={markNotificationsRead}>Mark all read</button></div>{notifications.length ? notifications.map(n => <button key={n.id} type="button" onClick={() => { const match = posts.find(p => String(p.id) === String(n.post_id)); if (match) { setActive('community'); setSelectedPost(match); setNotificationOpen(false); } }} style={{ width:'100%', textAlign:'left', padding:'10px 4px', border:0, borderTop:'1px solid #f0e7df', background:'transparent', cursor:n.post_id ? 'pointer' : 'default', fontSize:12 }}>{n.message}<small style={{ display:'block', color:'#9a8e86', marginTop:3 }}>{formatPostTime(n.created_at)}</small></button>) : <small style={{ color:'#8c8179' }}>No notifications yet.</small>}</div>}</div>
+        <div className="top-actions" style={{ position:'relative' }}><button className="icon-btn" onClick={() => { setNotificationOpen(x => !x); loadNotifications(); if (!notificationOpen) markNotificationsRead(); }}>♧{unreadNotifications > 0 && <span style={{ position:'absolute', top:0, right:32, minWidth:16, height:16, borderRadius:99, background:'#7c1d25', color:'#fff', fontSize:9, display:'grid', placeItems:'center', padding:'0 3px' }}>{unreadNotifications}</span>}</button><button className="avatar mini" onClick={() => setActive('profile')}>{initialsFromName(userName || 'Guest')}</button>{notificationOpen && <div style={{ position:'absolute', right:0, top:48, width:300, maxWidth:'calc(100vw - 32px)', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:16, padding:12, boxShadow:'0 16px 40px rgba(55,30,20,.15)', zIndex:50 }}><div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}><b>Notifications</b><button className="text-btn" onClick={markNotificationsRead}>Mark all read</button></div>{notifications.length ? notifications.map(n => <button key={n.id} type="button" onClick={() => { const match = posts.find(p => String(p.id) === String(n.post_id)); if (match) { setActive('community'); setSelectedPost(match); setNotificationOpen(false); } }} style={{ width:'100%', textAlign:'left', padding:'10px 4px', border:0, borderTop:'1px solid #f0e7df', background:'transparent', cursor:n.post_id ? 'pointer' : 'default', fontSize:12 }}>{n.message}<small style={{ display:'block', color:'#9a8e86', marginTop:3 }}>{formatPostTime(n.created_at)}</small></button>) : <small style={{ color:'#8c8179' }}>No notifications yet.</small>}</div>}</div>
       </header>
 
       <section className="content">
@@ -1593,51 +1483,28 @@ export default function Home() {
 
         {active === 'home' && <>
           <section className="hero">
-            <div><p className="eyebrow">YOUR COMMUNITY, CLOSER</p><h1>{new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'},<br /><span>{userName || 'there'}</span> 👋</h1><p className="hero-copy">Discover what's happening around your Jain community in Bengaluru.</p></div>
-            <div className="hero-symbol"><img src="/kantha-pranth-emblem.svg" alt="" /></div>
+            <div><p className="eyebrow">YOUR COMMUNITY, CLOSER</p><h1>Good evening,<br /><span>{userName || 'there'}</span> 👋</h1><p className="hero-copy">Discover what's happening around your Jain community in Bengaluru.</p></div>
+            <div className="hero-symbol">🙏</div>
           </section>
-          <button type="button" className="heritage-home-banner" onClick={() => setActive('community')} aria-label="Explore our Jain community">
-            <img src="https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg" alt="Ornate Indian temple architecture at golden hour" />
-            <span className="heritage-home-shade" />
-            <span className="heritage-home-copy"><small>FAITH · FAMILY · COMMUNITY</small><strong>Faith.<br/>Family.<br/><em>Community.</em></strong><i>Discover the community <b>↗</b></i></span>
-          </button>
           <div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, services, events..." /></div>
-          <div className="quick-grid">{quickActions.map(([label, icon]) => <button key={label} className="quick-card" onClick={() => setActive(label === 'Community' ? 'community' : label === 'Family Directory' ? 'family' : label === 'Marketplace' ? 'marketplace' : label === 'Business Directory' ? 'services' : label === 'Events' ? 'events' : label === 'Messages' ? 'messages' : 'community')}><span>{icon}</span><b>{label}</b></button>)}</div>
-          <section className="discover-section" aria-label="Explore Kantha Pranth">
-            <div className="section-head"><h2>Made for our community</h2><span className="discover-kicker">CONNECT · CELEBRATE · SUPPORT</span></div>
-            <div className="discover-strip">
-              <button type="button" className="discover-card" onClick={() => setActive('community')}>
-                <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Shravanabelagola_Bahubali_wideframe.jpg?width=640" alt="Gommateshwara statue on Vindhyagiri hill, Shravanabelagola" loading="lazy" />
-                <span className="discover-overlay"><small>CONNECT</small><b>Community</b><i>Meet your people ↗</i></span>
-              </button>
-              <button type="button" className="discover-card" onClick={() => setActive('events')}>
-                <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Gomateswara.jpg?width=640" alt="Bahubali statue at Shravanabelagola, home of the Mahamastakabhisheka festival" loading="lazy" />
-                <span className="discover-overlay"><small>COME TOGETHER</small><b>Events</b><i>See what's coming ↗</i></span>
-              </button>
-              <button type="button" className="discover-card" onClick={() => setActive('services')}>
-                <img src="https://commons.wikimedia.org/wiki/Special:FilePath/New_Jain_temple_in_Jaiynagar,_Bengaluru.jpg?width=640" alt="Jain temple in Jayanagar, Bengaluru" loading="lazy" />
-                <span className="discover-overlay"><small>SHOP LOCAL</small><b>Services</b><i>Discover nearby ↗</i></span>
-              </button>
-            </div>
-            <p className="image-note">Photos: Wikimedia Commons (Shravanabelagola and Bengaluru Jain heritage photographs) · Help our community grow by sharing updates, events and trusted local services.</p>
-          </section>
+          <div className="quick-grid">{quickActions.map(([label, icon]) => <button key={label} className="quick-card" onClick={() => setActive(label === 'Community' ? 'community' : label === 'Family' ? 'family' : label === 'Buy & Sell' ? 'marketplace' : label === 'Services' || label === 'Businesses' ? 'services' : label === 'Events' ? 'events' : 'help')}><span>{icon}</span><b>{label}</b></button>)}</div>
           <SectionHeader title="Latest updates" action="View all" onClick={() => setActive('community')} />
-          {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onShareInApp={shareInAppItem} />)}
+          {posts.slice(0, 2).map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} />)}
           <SectionHeader title="Coming up" action="All events" onClick={() => setActive('events')} />
           <EventCard event={communityEvents[0] || events[0]} onClick={() => setSelectedEvent(communityEvents[0] || events[0])} />
         </>}
 
-        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋ Post</button>}><div className="search" style={{ marginTop:12 }}><span>⌕</span><input value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="Search community posts..." /></div><div className="filter-row" style={{ marginTop:10 }}>{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onPostChanged={loadPosts} onProfile={openMemberProfile} onShareInApp={shareInAppItem} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
+        {active === 'community' && <Page title="Community" subtitle="What's happening around Bengaluru?" action={<button className="primary small" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋ Post</button>}><div className="search" style={{ marginTop:12 }}><span>⌕</span><input value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="Search community posts..." /></div><div className="filter-row" style={{ marginTop:10 }}>{['All','Announcement','Help','Events','Buy & Sell','Local'].map(filter => <button key={filter} onClick={() => setCommunityFilter(filter)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={communityFilter === filter ? 'active' : ''}>{filter}</Pill></button>)}</div>{filteredCommunityPosts.length ? filteredCommunityPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="info-banner"><b>No posts found</b><p>Try another category or be the first to post.</p></div>}</Page>}
 
         {active === 'family' && <Page title="Family Directory" subtitle="Connect with Jain families in your community" action={authenticated && !guestMode && supabase ? <button className="primary small" onClick={() => setShowFamilyForm(true)}>＋ Add family</button> : null}>
           <div className="directory-banner"><div className="directory-icon">👨‍👩‍👧‍👦</div><div><b>A community family directory</b><p>Choose what your family shares. Phone numbers and private details are never displayed by default.</p></div></div>
           <div className="search"><span>⌕</span><input value={familySearch} onChange={e => setFamilySearch(e.target.value)} placeholder="Search family or locality" /></div>
           {!supabase && <div className="info-banner"><b>Demo mode</b><p>Connect Supabase to create and store real family profiles.</p></div>}
           {supabase && (!authenticated || guestMode) && <div className="info-banner"><b>Sign in required</b><p>Sign in to view the private community directory and add your family.</p></div>}
-          {filteredFamilies.length ? filteredFamilies.map(f => <button className="family-card" key={f.id} onClick={() => setSelectedFamily(f)}><div className="family-avatar">{f.photo_url ? <img src={f.photo_url} alt={`${f.family_name || 'Community'} family photo`} loading="lazy" /> : '👨‍👩‍👧‍👦'}</div><div className="family-info"><h3>{f.family_name || 'Jain Family'}</h3><p>⌖ {f.localities?.name || 'Bengaluru'}</p><small>{f.family_members?.length || 0} family member{(f.family_members?.length || 0) === 1 ? '' : 's'} · {f.visibility === 'private' ? 'Private' : 'Community visible'}</small></div><span className="chevron">›</span></button>) : <div className="empty-state"><div>👨‍👩‍👧‍👦</div><h3>No families found</h3><p>Be one of the first families to join the directory.</p>{authenticated && !guestMode && supabase && <button className="primary" onClick={() => setShowFamilyForm(true)}>Add my family</button>}</div>}
+          {filteredFamilies.length ? filteredFamilies.map(f => <button className="family-card" key={f.id} onClick={() => setSelectedFamily(f)}><div className="family-avatar">{f.photo_url ? <img src={f.photo_url} alt="Family" /> : '👨‍👩‍👧‍👦'}</div><div className="family-info"><h3>{f.family_name || 'Jain Family'}</h3><p>⌖ {f.localities?.name || 'Bengaluru'}</p><small>{f.family_members?.length || 0} family member{(f.family_members?.length || 0) === 1 ? '' : 's'} · {f.visibility === 'private' ? 'Private' : 'Community visible'}</small></div><span className="chevron">›</span></button>) : <div className="empty-state"><div>👨‍👩‍👧‍👦</div><h3>No families found</h3><p>Be one of the first families to join the directory.</p>{authenticated && !guestMode && supabase && <button className="primary" onClick={() => setShowFamilyForm(true)}>Add my family</button>}</div>}
         </Page>}
 
-        {active === 'marketplace' && <Page title="Buy & Sell" subtitle={`${filteredListings.length} active listings around Bengaluru`} action={<button className="primary small" onClick={() => { if (!authenticated || guestMode || !supabase) { setShowLogin(true); setToast('Sign in to sell in the marketplace'); } else setShowListing(true); }}>＋ Sell</button>}><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products, categories, localities…" /></div>{authenticated && !guestMode && <button type="button" className="soft-btn" style={{ marginTop:8 }} onClick={() => setMyListingsOnly(value => !value)}>{myListingsOnly ? '✓ Showing my listings · Show all' : 'My listings'}</button>}<div className="category-scroll">{['All','Property','Vehicles','Electronics','Furniture','Books','Business'].map(x => <button key={x} type="button" onClick={() => setSearch(x === 'All' ? '' : x)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={(x === 'All' && !search) || search.toLowerCase() === x.toLowerCase() ? 'active' : ''}>{x}</Pill></button>)}</div>{filteredListings.length ? <div className="listing-grid">{filteredListings.map(item => <button className="listing" key={item.id} onClick={() => setSelectedListing(item)}><div className="listing-img">{item.image_url ? <img src={item.image_url} alt={`${item.title} listing photo`} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:12 }} /> : item.emoji}</div><div className="listing-body"><div className="listing-title">{item.title}</div><div className="price">{item.price}</div><div className="meta">⌖ {item.area} · {item.condition || 'Condition not specified'}</div></div></button>)}</div> : <div className="empty-state"><div>🛍️</div><h3>No active listings found</h3><p>Try a different search or be the first to list an item for your community.</p>{authenticated && !guestMode && <button className="primary" onClick={() => setShowListing(true)}>＋ Create a listing</button>}</div>}</Page>}
+        {active === 'marketplace' && <Page title="Buy & Sell" subtitle={`${filteredListings.length} active listings around Bengaluru`} action={<button className="primary small" onClick={() => { if (!authenticated || guestMode || !supabase) { setShowLogin(true); setToast('Sign in to sell in the marketplace'); } else setShowListing(true); }}>＋ Sell</button>}><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products, categories, localities…" /></div>{authenticated && !guestMode && <button type="button" className="soft-btn" style={{ marginTop:8 }} onClick={() => setMyListingsOnly(value => !value)}>{myListingsOnly ? '✓ Showing my listings · Show all' : 'My listings'}</button>}<div className="category-scroll">{['All','Property','Vehicles','Electronics','Furniture','Books','Business'].map(x => <button key={x} type="button" onClick={() => setSearch(x === 'All' ? '' : x)} style={{ border:0, background:'transparent', padding:0, cursor:'pointer' }}><Pill tone={(x === 'All' && !search) || search.toLowerCase() === x.toLowerCase() ? 'active' : ''}>{x}</Pill></button>)}</div>{filteredListings.length ? <div className="listing-grid">{filteredListings.map(item => <button className="listing" key={item.id} onClick={() => setSelectedListing(item)}><div className="listing-img">{item.image_url ? <img src={item.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:12 }} /> : item.emoji}</div><div className="listing-body"><div className="listing-title">{item.title}</div><div className="price">{item.price}</div><div className="meta">⌖ {item.area} · {item.condition || 'Condition not specified'}</div></div></button>)}</div> : <div className="empty-state"><div>🛍️</div><h3>No active listings found</h3><p>Try a different search or be the first to list an item for your community.</p>{authenticated && !guestMode && <button className="primary" onClick={() => setShowListing(true)}>＋ Create a listing</button>}</div>}</Page>}
 
         {active === 'services' && <Page title="Businesses & Services" subtitle="Discover local services and community businesses" action={<button className="primary small" onClick={() => { if (!authenticated || guestMode || !supabase) { setShowLogin(true); setToast('Sign in to list your business'); } else setShowBusinessForm(true); }}>＋ Add business</button>}><div className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search doctors, CA, lawyers, services…" /></div><div className="service-grid">{['Doctors','CA','Lawyers','Education','Home Services','Travel','Catering','Other'].map(x => <button className="service-cat" key={x} onClick={() => setSearch(x)}><span>{x === 'Doctors' ? '🩺' : x === 'CA' ? '📊' : x === 'Lawyers' ? '⚖️' : x === 'Travel' ? '✈️' : '✦'}</span><b>{x}</b></button>)}</div><SectionHeader title="Community directory" action="Clear filter" onClick={() => setSearch('')} />{filteredServices.length ? filteredServices.map(s => <ServiceCard key={s.id || s.name} service={s} onToast={setToast} />) : <div className="empty-state"><div>🏪</div><h3>No businesses found</h3><p>Try another search or add a business to the community directory.</p><button className="primary" onClick={() => { if (authenticated && !guestMode && supabase) setShowBusinessForm(true); else setShowLogin(true); }}>＋ Add business</button></div>}</Page>}
 
@@ -1667,18 +1534,7 @@ export default function Home() {
           {(!authenticated || guestMode || !supabase) ? <div className="info-banner"><b>Sign in required</b><p>Sign in to see your saved community posts.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in</button></div> : savedPosts.length ? savedPosts.map(post => <PostCard key={post.id} post={post} onToast={setToast} currentUserId={currentUserId} authenticated={authenticated} guestMode={guestMode} isVerifiedUser={isVerifiedUser} onPostChanged={loadPosts} onProfile={openMemberProfile} />) : <div className="empty-state"><div>🔖</div><h3>No saved posts yet</h3><p>Use Save on a community post to keep it here for later.</p><button className="primary" onClick={() => setActive('community')}>Explore community</button></div>}
         </Page>}
 
-        {active === 'messages' && <Page title="Messages" subtitle="Private conversations with community members" action={activeConversation ? <button className="soft-btn" onClick={() => { setActiveConversation(null); setThreadMessages([]); }}>← Inbox</button> : <button className="primary small" onClick={openMessageMemberPicker}>＋ New message</button>}>
-          {showMessageMemberPicker && !activeConversation && authenticated && !guestMode && supabase && <div style={{ marginBottom:14, padding:14, border:'1px solid #eadfd3', borderRadius:16, background:'#fffdf9' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, marginBottom:10 }}>
-              <div><b>Start a conversation</b><small style={{ display:'block', color:'#8c8179', marginTop:3 }}>Choose a community member to message privately.</small></div>
-              <button type="button" className="soft-btn" onClick={() => setShowMessageMemberPicker(false)}>Close</button>
-            </div>
-            <input value={messageMemberSearch} onChange={e => setMessageMemberSearch(e.target.value)} placeholder="Search members by name…" style={{ width:'100%', marginBottom:10 }} />
-            {messageMembersLoading ? <div className="info-banner">Loading community members…</div> : (() => {
-              const matchingMembers = messageMembers.filter(member => (member.full_name || 'Community Member').toLowerCase().includes(messageMemberSearch.trim().toLowerCase()));
-              return matchingMembers.length ? <div style={{ display:'grid', gap:7, maxHeight:300, overflowY:'auto' }}>{matchingMembers.map(member => <button type="button" key={member.id} onClick={() => { setShowMessageMemberPicker(false); startConversationWith(member.id, pendingShareMessage); setPendingShareMessage(''); }} style={{ display:'flex', alignItems:'center', gap:10, textAlign:'left', padding:10, border:'1px solid #eadfd3', borderRadius:12, background:'#fff', cursor:'pointer' }}><Avatar initials={initialsFromName(member.full_name || 'Community Member')} /><span style={{ flex:1 }}><b>{member.full_name || 'Community Member'}</b>{member.is_verified && <span className="verified"> ✓ Verified</span>}</span><span className="chevron">›</span></button>)}</div> : <div className="empty-state"><div>🔎</div><h3>No members found</h3><p>{messageMembers.length ? 'Try a different name.' : 'No other member profiles are available yet.'}</p></div>;
-            })()}
-          </div>}
+        {active === 'messages' && <Page title="Messages" subtitle="Private conversations with community members" action={activeConversation ? <button className="soft-btn" onClick={() => { setActiveConversation(null); setThreadMessages([]); }}>← Inbox</button> : null}>
           {(!authenticated || guestMode || !supabase) ? <div className="info-banner"><b>Private messaging</b><p>Sign in with a registered account to start and receive private messages.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in</button></div> : activeConversation ? <div style={{ display:'grid', gap:12 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px', background:'#fffdf9', border:'1px solid #eadfd3', borderRadius:14 }}><Avatar initials={initialsFromName(activeConversation.otherName)} /><div style={{ flex:1 }}><b>{activeConversation.otherName}</b>{activeConversation.otherVerified && <span className="verified"> ✓ Verified</span>}<small style={{ display:'block', color:'#8c8179', marginTop:3 }}>Private one-to-one conversation</small></div></div>
             <div style={{ display:'flex', flexDirection:'column', gap:8, minHeight:260, maxHeight:'52vh', overflowY:'auto', padding:10, background:'#f8f3ed', borderRadius:14 }}>
@@ -1696,8 +1552,8 @@ export default function Home() {
         </Page>}
       </section>
 
-      <button type="button" className="fab" aria-label="Create a community post" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋</button>
-      <nav className="bottom-nav" aria-label="Main navigation">{nav.map(([id, icon, label]) => <button type="button" key={id} className={active === id ? 'selected' : ''} aria-current={active === id ? 'page' : undefined} aria-label={label} onClick={() => { setActive(id); setNotificationOpen(false); }}><span aria-hidden="true">{icon}</span><small>{label}</small></button>)}</nav>
+      <button className="fab" onClick={() => isVerifiedUser ? setShowPost(true) : setToast('Only verified community members can publish posts')}>＋</button>
+      <nav className="bottom-nav">{nav.map(([id, icon, label]) => <button key={id} className={active === id ? 'selected' : ''} onClick={() => setActive(id)}><span>{icon}</span><small>{label}</small></button>)}</nav>
 
       {showEditProfile && <Modal title="Edit profile" close={() => setShowEditProfile(false)}><form onSubmit={saveEditableProfile} className="form">
         <label>Full name<input value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name:e.target.value})} required /></label>
@@ -1711,7 +1567,7 @@ export default function Home() {
         <button type="submit" disabled={profileBusy} className="primary full">{profileBusy ? 'Saving…' : 'Save changes'}</button>
       </form></Modal>}
 
-      {showPost && <Modal title="Create a community post" close={() => { setShowPost(false); setPostPhotoPreview(''); }}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><div><label htmlFor="community-post-photo" style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 15px', border:'1px dashed #bba99a', borderRadius:12, background:'#fffaf4', cursor:'pointer' }}><span style={{ fontSize:22 }}>📷</span><span><b>Add a photo</b><small className="field-help" style={{ display:'block' }}>Optional · JPG, PNG or WEBP · maximum 5 MB</small></span></label><input id="community-post-photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" style={{ position:'absolute', width:1, height:1, padding:0, margin:-1, overflow:'hidden', clip:'rect(0,0,0,0)', whiteSpace:'nowrap', border:0 }} onChange={e => { const file=e.target.files?.[0]; setPostPhotoPreview(file ? URL.createObjectURL(file) : ''); }} />{postPhotoPreview && <div style={{ marginTop:10 }}><img className="family-photo-preview" src={postPhotoPreview} alt="Selected post photo preview" /><button type="button" className="soft-btn" style={{ marginTop:7 }} onClick={() => { const input=document.getElementById('community-post-photo'); if(input) input.value=''; setPostPhotoPreview(''); }}>Remove photo</button></div>}</div><button className="primary full" disabled={postBusy || !isVerifiedUser}>{postBusy ? 'Publishing…' : !isVerifiedUser ? 'Verification required' : 'Publish post'}</button></form></Modal>}
+      {showPost && <Modal title="Create a community post" close={() => { setShowPost(false); setPostPhotoPreview(''); }}><form onSubmit={addPost} className="form"><label>Post type<select name="type" defaultValue="Discussion"><option>Discussion</option><option>Announcement</option><option>Local Information</option><option>Help</option><option>Buy & Sell</option></select></label><label>Title<input name="title" placeholder="What would you like to share?" required /></label><label>Message<textarea name="text" rows="4" placeholder="Add details for the community..." required /></label><label>Photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0]; setPostPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{postPhotoPreview && <img className="family-photo-preview" src={postPhotoPreview} alt="Post preview" />}<button className="primary full" disabled={postBusy || !isVerifiedUser}>{postBusy ? 'Publishing…' : !isVerifiedUser ? 'Verification required' : 'Publish post'}</button></form></Modal>}
       {showEventForm && <Modal title="Create community event" close={() => setShowEventForm(false)}><form onSubmit={createCommunityEvent} className="form"><div className="info-banner"><b>Organiser locality: {locality}</b><p>Events are published under your account. Add clear venue and timing details.</p></div><label>Event title<input name="title" minLength={4} maxLength={120} placeholder="e.g. Jain youth networking evening" required /></label><label>Description<textarea name="description" rows={4} maxLength={2500} placeholder="What will happen at the event? Who is welcome?" /></label><div className="two-col"><label>Date<input name="date" type="date" min={new Date().toISOString().split('T')[0]} required /></label><label>Time<input name="time" type="time" required /></label></div><label>Venue / address<input name="location" maxLength={200} placeholder="Temple hall, community centre…" required /></label><button className="primary full" disabled={eventBusy}>{eventBusy ? 'Publishing…' : 'Publish event'}</button></form></Modal>}
       {showBusinessForm && <Modal title="Add a community business" close={() => setShowBusinessForm(false)}><form onSubmit={createBusinessListing} className="form"><div className="info-banner"><b>Locality: {locality}</b><p>Your listing will appear as unverified until an administrator reviews it. Only publish contact details intended for customers.</p></div><label>Business name<input name="name" minLength={2} maxLength={120} placeholder="e.g. Jain Family Clinic" required /></label><label>Category<select name="category">{['Healthcare','Chartered Accountant','Legal Services','Education','Home Services','Travel','Catering','Retail','Other'].map(x => <option key={x}>{x}</option>)}</select></label><label>Description<textarea name="description" rows={3} maxLength={1500} placeholder="Services offered, hours, and what makes your business useful to the community." /></label><label>Business contact number<input name="phone" type="tel" inputMode="numeric" maxLength={10} placeholder="10-digit phone number" /></label><label>Website <span className="optional">(optional)</span><input name="website" type="text" maxLength={250} placeholder="yourbusiness.in" /></label><button className="primary full" disabled={businessBusy}>{businessBusy ? 'Adding…' : 'Add business'}</button></form></Modal>}
       {showPrivacyInfo && <Modal title="Privacy & visibility" close={() => setShowPrivacyInfo(false)}><div className="info-banner"><b>Your registration details are private</b><p>Your date of birth, mobile number, blood group, marital status, occupation, education, and parents' names are stored separately from your public community profile. Only you and authorised community administrators can access those details.</p></div><div className="info-banner"><b>What other members can see</b><p>Your name, profile photo, bio, verification badge, locality, and the posts you publish may be visible to signed-in community members.</p></div><button className="primary full" onClick={() => { setShowPrivacyInfo(false); setShowEditProfile(true); }}>Review my profile details</button></Modal>}
@@ -1719,11 +1575,11 @@ export default function Home() {
       {showListing && <Modal title="Sell something" close={() => setShowListing(false)}><form onSubmit={addListing} className="form"><div className="info-banner"><b>Reach your local community</b><p>Your listing will be visible in the marketplace while it is active. Never include sensitive personal information in the description.</p></div><label>Product name<input name="title" placeholder="e.g. Study table" minLength={3} maxLength={100} required /></label><label>Price (₹)<input name="price" type="number" inputMode="decimal" min="1" max="999999999" step="0.01" placeholder="2500" required /></label><label>Category<select name="category"><option>Furniture</option><option>Electronics</option><option>Books</option><option>Vehicles</option><option>Property</option><option>Business</option><option>Other</option></select></label><label>Condition<select name="condition"><option>New</option><option>Like new</option><option>Good condition</option><option>Used</option><option>For parts / repair</option></select></label><label>Description <span className="optional">(optional)</span><textarea name="description" rows="3" maxLength={1500} placeholder="Describe the item, pickup details, and anything buyers should know." /></label><button className="primary full" disabled={listingBusy}>{listingBusy ? 'Publishing…' : 'Publish listing'}</button></form></Modal>}
       {showFamilyForm && <Modal title="Add your family" close={() => { setShowFamilyForm(false); setFamilyPhotoPreview(''); }}><form onSubmit={createFamily} className="form"><div className="info-banner"><b>Privacy first</b><p>All contact details are optional. They are shown only when you choose “Show contact details”.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" onChange={e => { const file=e.target.files?.[0]; setFamilyPhotoPreview(file ? URL.createObjectURL(file) : ''); }} /></label>{familyPhotoPreview && <img className="family-photo-preview" src={familyPhotoPreview} alt="Family preview" />}<label>Family name <span className="optional">(optional)</span><input name="family_name" placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue="community"><option value="community">Community members</option><option value="private">Private — only me</option></select></label><label>Family members<small className="field-help">One member per line. Example: Rajesh Jain — Father</small><textarea name="members" rows="5" placeholder="Rajesh Jain — Father&#10;Sunita Jain — Mother&#10;Aarav Jain — Son"></textarea></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Add family to directory'}</button></form></Modal>}
       {showFamilyEdit && editingFamily && <Modal title="Edit family details" close={() => { setShowFamilyEdit(false); setEditingFamily(null); }}><form onSubmit={updateFamily} className="form"><div className="info-banner"><b>Update anytime</b><p>You can remove the family name, replace the photo, or change which contact details the community can see.</p></div><label>Family photo <small className="field-help">Optional · JPG, PNG or WEBP · up to 5 MB</small><input name="photo" type="file" accept="image/*" /></label>{editingFamily.photo_url && <img className="family-photo-preview" src={editingFamily.photo_url} alt="Current family" />}<label className="check-row"><input name="remove_photo" type="checkbox" /> Remove current family photo</label><label>Family name <span className="optional">(optional)</span><input name="family_name" defaultValue={editingFamily.family_name || ''} placeholder="e.g. Jain Family" /></label><label className="check-row"><input name="hide_family_name" type="checkbox" defaultChecked={!editingFamily.family_name} /> Don't display a family name</label><label>Locality<select name="locality" defaultValue={editingFamily.localities?.name || locality}>{localities.map(x => <option key={x}>{x}</option>)}</select></label><label>Detailed address <span className="optional">(optional)</span><textarea name="address" rows="3" defaultValue={editingFamily.address || ''} placeholder="House / flat, street, landmark, area, Bengaluru"></textarea></label><div className="two-col"><label>Phone number <span className="optional">(optional)</span><input name="phone" type="tel" defaultValue={editingFamily.phone || ''} placeholder="+91 98765 43210" /></label><label>Email ID <span className="optional">(optional)</span><input name="email" type="email" defaultValue={editingFamily.email || ''} placeholder="family@example.com" /></label></div><label className="check-row"><input name="show_contact" type="checkbox" defaultChecked={!!editingFamily.show_contact} /> Show phone, email & address to community members</label><label>Visibility<select name="visibility" defaultValue={editingFamily.visibility || 'community'}><option value="community">Community members</option><option value="private">Private — only me</option></select></label><button className="primary full" disabled={familyBusy}>{familyBusy ? 'Saving…' : 'Save family details'}</button></form></Modal>}
-      {selectedFamily && <Modal title={selectedFamily.family_name || 'Jain Family'} close={() => setSelectedFamily(null)}><div className="family-detail-head"><div className="family-avatar large">{selectedFamily.photo_url ? <img src={selectedFamily.photo_url} alt="Family" /> : '👨‍👩‍👧‍👦'}</div><div><h2>{selectedFamily.family_name || 'Jain Family'}</h2><p>⌖ {selectedFamily.localities?.name || 'Bengaluru'}</p></div></div>{selectedFamily.show_contact && selectedFamily.address && <div className="contact-card"><b>Address</b><p>{selectedFamily.address}</p></div>}{selectedFamily.show_contact && (selectedFamily.phone || selectedFamily.email) && <div className="contact-card"><b>Contact</b>{selectedFamily.phone && <a href={`tel:${selectedFamily.phone}`}>📞 {selectedFamily.phone}</a>}{selectedFamily.email && <a href={`mailto:${selectedFamily.email}`}>✉️ {selectedFamily.email}</a>}<div className="contact-actions">{selectedFamily.phone && <a className="contact-action whatsapp" href={whatsappUrl(selectedFamily.phone)} target="_blank" rel="noreferrer">💬 WhatsApp</a>}{selectedFamily.email && <a className="contact-action email" href={`mailto:${selectedFamily.email}?subject=${encodeURIComponent('Hello from Kantha Pranth')}`}>✉️ Send Email</a>}</div></div>}<h3 className="detail-section-title">Family members</h3><div className="member-list">{(selectedFamily.family_members || []).map(m => <div className="member-row" key={m.id}><Avatar initials={initialsFromName(m.member_name)} /><div><b>{m.member_name}</b><span>{m.relationship}</span></div></div>)}</div>{selectedFamily.owner_id === currentUserId && <button className="outline full" onClick={() => { setEditingFamily(selectedFamily); setSelectedFamily(null); setShowFamilyEdit(true); }}>Edit family details</button>}<div className="info-banner"><b>Privacy</b><p>Contact details are shown only when the family chooses to share them with community members. Sharing a directory link will not include private contact information.</p></div>{selectedFamily.visibility !== 'private' && <><button type="button" className="outline full" style={{ marginTop:8 }} onClick={() => shareAppItem({ title:selectedFamily.family_name || 'Jain Family', text:`${selectedFamily.family_name || 'Jain Family'} · ${selectedFamily.localities?.name || 'Bengaluru'} · Kantha Pranth Family Directory`, queryKey:'family', id:selectedFamily.id, onToast:setToast })}>↗ Share family directory</button><button type="button" className="outline full" style={{ marginTop:8 }} onClick={() => shareInAppItem({ title:selectedFamily.family_name || 'Jain Family', text:`${selectedFamily.localities?.name || 'Bengaluru'} · Kantha Pranth Family Directory`, queryKey:'family', id:selectedFamily.id })}>✉ Send to a member in app</button></>}</Modal>}
+      {selectedFamily && <Modal title={selectedFamily.family_name || 'Jain Family'} close={() => setSelectedFamily(null)}><div className="family-detail-head"><div className="family-avatar large">{selectedFamily.photo_url ? <img src={selectedFamily.photo_url} alt="Family" /> : '👨‍👩‍👧‍👦'}</div><div><h2>{selectedFamily.family_name || 'Jain Family'}</h2><p>⌖ {selectedFamily.localities?.name || 'Bengaluru'}</p></div></div>{selectedFamily.show_contact && selectedFamily.address && <div className="contact-card"><b>Address</b><p>{selectedFamily.address}</p></div>}{selectedFamily.show_contact && (selectedFamily.phone || selectedFamily.email) && <div className="contact-card"><b>Contact</b>{selectedFamily.phone && <a href={`tel:${selectedFamily.phone}`}>📞 {selectedFamily.phone}</a>}{selectedFamily.email && <a href={`mailto:${selectedFamily.email}`}>✉️ {selectedFamily.email}</a>}<div className="contact-actions">{selectedFamily.phone && <a className="contact-action whatsapp" href={whatsappUrl(selectedFamily.phone)} target="_blank" rel="noreferrer">💬 WhatsApp</a>}{selectedFamily.email && <a className="contact-action email" href={`mailto:${selectedFamily.email}?subject=${encodeURIComponent('Hello from Kantha Pranth')}`}>✉️ Send Email</a>}</div></div>}<h3 className="detail-section-title">Family members</h3><div className="member-list">{(selectedFamily.family_members || []).map(m => <div className="member-row" key={m.id}><Avatar initials={initialsFromName(m.member_name)} /><div><b>{m.member_name}</b><span>{m.relationship}</span></div></div>)}</div>{selectedFamily.owner_id === currentUserId && <button className="outline full" onClick={() => { setEditingFamily(selectedFamily); setSelectedFamily(null); setShowFamilyEdit(true); }}>Edit family details</button>}<div className="info-banner"><b>Privacy</b><p>Contact details are shown only when the family chooses to share them with community members.</p></div></Modal>}
       {showLogin && <Modal title={authMode === 'signup' ? 'Create your account' : 'Welcome back'} close={() => setShowLogin(false)}>
         <form onSubmit={handleEmailAuth} className="form">
           <div className="login-intro">
-            <div className="brand-mark big"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
+            <div className="brand-mark big">☀</div>
             <p>{authMode === 'signup' ? 'Create a free Kantha Pranth account with your email.' : 'Sign in to your Jain community account.'}</p>
           </div>
           <label>Email address
@@ -1764,9 +1620,9 @@ export default function Home() {
           </small>
         </form>
       </Modal>}
-      {selectedEvent && <Modal title={selectedEvent.title} close={() => setSelectedEvent(null)}><div className="detail-hero">{selectedEvent.emoji || '🙏'}</div><Pill>{selectedEvent.tag || 'Community'}</Pill><h2>{selectedEvent.date} · {selectedEvent.time}</h2><p>📍 {selectedEvent.location || selectedEvent.area}, Bengaluru</p><p style={{ whiteSpace:'pre-wrap' }}>{selectedEvent.description || 'Join the community for a meaningful gathering and connect with fellow members.'}</p><button type="button" className="outline full" style={{ marginBottom:8 }} onClick={() => shareAppItem({ title:selectedEvent.title, text:`${selectedEvent.title} · ${selectedEvent.date} at ${selectedEvent.time} · ${selectedEvent.location || selectedEvent.area || 'Bengaluru'}`, queryKey:'event', id:selectedEvent.id, onToast:setToast })}>↗ Share event</button><button type="button" className="outline full" style={{ marginBottom:8 }} onClick={() => shareInAppItem({ title:selectedEvent.title, text:`${selectedEvent.date} at ${selectedEvent.time} · ${selectedEvent.location || selectedEvent.area || 'Bengaluru'}\n${selectedEvent.description || ''}`, queryKey:'event', id:selectedEvent.id })}>✉ Send to a member in app</button><button className="primary full" onClick={() => registerForEvent(selectedEvent)}>{myEventIds.includes(selectedEvent.id) ? 'Cancel registration' : 'Register / Interested'}</button></Modal>}
-      {selectedListing && <Modal title={selectedListing.title} close={() => setSelectedListing(null)}>{selectedListing.image_url ? <img src={selectedListing.image_url} alt={selectedListing.title} style={{ width:'100%', maxHeight:300, objectFit:'cover', borderRadius:14 }} /> : <div className="detail-hero listing-detail">{selectedListing.emoji}</div>}<div className="price huge">{selectedListing.price}</div><p>📍 {selectedListing.area} · {selectedListing.condition || 'Condition not specified'}</p>{selectedListing.description && <p style={{ whiteSpace:'pre-wrap' }}>{selectedListing.description}</p>}<div className="info-banner"><b>{selectedListing.sellerName || 'Community Member'} {selectedListing.sellerVerified && <span className="verified">✓ Verified</span>}</b><p>Community marketplace listing · {selectedListing.created_at ? formatPostTime(selectedListing.created_at) : 'Recently added'}</p></div><button type="button" className="outline full" style={{ marginBottom:8 }} onClick={() => shareAppItem({ title:selectedListing.title, text:`${selectedListing.title} — ${selectedListing.price} · ${selectedListing.area} · ${selectedListing.condition || 'Condition not specified'}${selectedListing.description ? ' · ' + selectedListing.description : ''}`, queryKey:'listing', id:selectedListing.id, onToast:setToast })}>↗ Share listing</button><button type="button" className="outline full" style={{ marginBottom:8 }} onClick={() => shareInAppItem({ title:selectedListing.title, text:`${selectedListing.price} · ${selectedListing.area} · ${selectedListing.condition || 'Condition not specified'}\n${selectedListing.description || ''}`, queryKey:'listing', id:selectedListing.id })}>✉ Send to a member in app</button>{selectedListing.seller_id === currentUserId && currentUserId ? <div style={{ display:'grid', gap:8 }}><button className="primary full" onClick={() => markListingSold(selectedListing)}>✓ Mark as sold</button><button className="outline full" onClick={() => removeListing(selectedListing)}>Remove listing</button></div> : <button className="primary full" onClick={() => { const sellerId = selectedListing.seller_id; setSelectedListing(null); if (!sellerId) setToast('This sample listing has no seller account attached'); else startConversationWith(sellerId); }}>✉ Message seller</button>}</Modal>}
-      {toast && <div className="toast" role="status" aria-live="polite">✓ {toast}</div>}
+      {selectedEvent && <Modal title={selectedEvent.title} close={() => setSelectedEvent(null)}><div className="detail-hero">{selectedEvent.emoji || '🙏'}</div><Pill>{selectedEvent.tag || 'Community'}</Pill><h2>{selectedEvent.date} · {selectedEvent.time}</h2><p>📍 {selectedEvent.location || selectedEvent.area}, Bengaluru</p><p style={{ whiteSpace:'pre-wrap' }}>{selectedEvent.description || 'Join the community for a meaningful gathering and connect with fellow members.'}</p><button className="primary full" onClick={() => registerForEvent(selectedEvent)}>{myEventIds.includes(selectedEvent.id) ? 'Cancel registration' : 'Register / Interested'}</button></Modal>}
+      {selectedListing && <Modal title={selectedListing.title} close={() => setSelectedListing(null)}>{selectedListing.image_url ? <img src={selectedListing.image_url} alt={selectedListing.title} style={{ width:'100%', maxHeight:300, objectFit:'cover', borderRadius:14 }} /> : <div className="detail-hero listing-detail">{selectedListing.emoji}</div>}<div className="price huge">{selectedListing.price}</div><p>📍 {selectedListing.area} · {selectedListing.condition || 'Condition not specified'}</p>{selectedListing.description && <p style={{ whiteSpace:'pre-wrap' }}>{selectedListing.description}</p>}<div className="info-banner"><b>{selectedListing.sellerName || 'Community Member'} {selectedListing.sellerVerified && <span className="verified">✓ Verified</span>}</b><p>Community marketplace listing · {selectedListing.created_at ? formatPostTime(selectedListing.created_at) : 'Recently added'}</p></div>{selectedListing.seller_id === currentUserId && currentUserId ? <div style={{ display:'grid', gap:8 }}><button className="primary full" onClick={() => markListingSold(selectedListing)}>✓ Mark as sold</button><button className="outline full" onClick={() => removeListing(selectedListing)}>Remove listing</button></div> : <button className="primary full" onClick={() => { const sellerId = selectedListing.seller_id; setSelectedListing(null); if (!sellerId) setToast('This sample listing has no seller account attached'); else startConversationWith(sellerId); }}>✉ Message seller</button>}</Modal>}
+      {toast && <div className="toast">✓ {toast}</div>}
     </main>
   );
 }
@@ -1777,24 +1633,6 @@ function eventTimestamp(event) {
   if (event?.starts_at) return new Date(event.starts_at).getTime();
   const parsed = new Date(`${event?.date || ''} ${new Date().getFullYear()}`);
   return parsed.getTime();
-}
-
-async function shareAppItem({ title, text, queryKey, id, onToast }) {
-  const url = new URL(window.location.href);
-  url.searchParams.set(queryKey, String(id));
-  try {
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-      await navigator.share({ title, text, url: url.toString() });
-      onToast?.('Share menu opened');
-    } else if (navigator?.clipboard?.writeText) {
-      await navigator.clipboard.writeText(`${text}\n${url.toString()}`);
-      onToast?.('Share text and link copied');
-    } else {
-      window.prompt('Copy this to share:', `${text}\n${url.toString()}`);
-    }
-  } catch (error) {
-    if (error?.name !== 'AbortError') onToast?.('Could not share. Please try again.');
-  }
 }
 
 function formatPostTime(value) {
@@ -1831,97 +1669,134 @@ function AuthScreen({
   authFeedback,
   onSubmit,
   onResetPassword,
-  onResendConfirmation,
   onGuest,
 }) {
   if (loading) {
-    return <main className="entry-splash" aria-label="Opening Kantha Pranth">
-      <div className="entry-splash-mark"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
-      <p className="entry-splash-kicker">JAIN COMMUNITY · BENGALURU</p>
-      <h1>KANTHA PRANTH</h1>
-      <p className="entry-splash-caption">A little closer to home.</p>
-      <span className="entry-loader" aria-hidden="true" />
-    </main>;
+    return <main className="auth-screen splash-auth"><div className="splash-logo">☀</div><div className="splash-name">KANTHA PRANTH</div><div className="splash-sub">Jain Community · Bengaluru</div></main>;
   }
 
-  const isSignup = authMode === 'signup';
-  const submitAuth = (e) => {
-    e.preventDefault();
-    onSubmit(e);
-  };
-
   if (loginOpen) {
-    return <main className="auth-entry-page auth-login-page">
-      <div className="auth-entry-layout">
-        <section className="auth-entry-art" aria-label="Kantha Pranth community">
-          <div className="auth-art-brand"><img src="/kantha-pranth-emblem.svg" alt="" /><b>KANTHA PRANTH</b></div>
-          <div className="auth-art-copy">
-            <p>FAITH · FAMILY · COMMUNITY</p>
-            <h2>Our people.<br/>Our heritage.<br/><em>Our community.</em></h2>
-            <span>Rooted in values. Growing together. A trusted place for Jain families to connect, celebrate and support one another across Bengaluru.</span>
-          </div>
-          <div className="auth-art-foot"><span>✦</span> CONNECT · SUPPORT · GROW</div>
-        </section>
-        <section className="auth-entry-panel">
-          <button type="button" className="auth-back-link" onClick={() => setLoginOpen(false)}>← <span>Back to welcome</span></button>
-          <div className="auth-form-wrap">
-            <div className="auth-login-logo"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
-            <p className="auth-overline">{isSignup ? 'JAIN COMMUNITY · BENGALURU' : 'WELCOME BACK'}</p>
-            <h1>{isSignup ? 'Create your account' : 'Welcome back'}</h1>
-            <p className="auth-copy">{isSignup ? 'Join our growing community in just a few steps.' : 'Sign in to continue to your community.'}</p>
-            <form className="auth-form-modern" onSubmit={submitAuth}>
-              <label>Email address
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" placeholder="you@example.com" required />
-              </label>
-              <label>Password
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={isSignup ? 'new-password' : 'current-password'} placeholder={isSignup ? 'At least 8 characters' : 'Enter your password'} minLength={isSignup ? 8 : undefined} required />
-              </label>
-              {!isSignup && <div className="auth-account-links">
-                <button type="button" onClick={onResetPassword} disabled={authBusy}>Forgot password?</button>
-                <button type="button" onClick={onResendConfirmation} disabled={authBusy}>Resend confirmation</button>
-              </div>}
-              {authFeedback && <div className="auth-feedback" role="status" aria-live="polite">{authFeedback}</div>}
-              <button className="primary full auth-main-btn" type="submit" disabled={authBusy}>{authBusy ? <><span className="button-spinner" /> Please wait…</> : isSignup ? 'Create my account' : 'Sign in to Kantha Pranth'} <span aria-hidden="true">→</span></button>
-            </form>
-            <p className="switch-auth">{isSignup ? 'Already a member?' : 'New to Kantha Pranth?'} <button type="button" onClick={() => { setAuthMode(isSignup ? 'login' : 'signup'); }}><b>{isSignup ? 'Sign in' : 'Create an account'}</b></button></p>
-            <div className="auth-divider"><span>OR</span></div>
-            <button type="button" className="guest-modern" onClick={onGuest}>Explore as a guest <span aria-hidden="true">→</span></button>
-            <p className="auth-privacy-note"><span>⌑</span> Your community starts with a secure sign-in.</p>
-          </div>
-        </section>
+    const submitAuth = (e) => {
+      e?.preventDefault?.();
+      onSubmit(e);
+    };
+
+    return <main
+      className="auth-screen"
+      style={{ minHeight: '100vh', background: '#f8f4ed', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+    >
+      <div
+        style={{ width: '100%', maxWidth: 430, background: '#fffdf9', borderRadius: 24, padding: '34px 24px', boxShadow: '0 20px 60px rgba(55,30,20,.12)', position: 'relative', zIndex: 9999 }}
+      >
+        <button
+          type="button"
+          onClick={() => setLoginOpen(false)}
+          style={{ position: 'absolute', top: 16, left: 16, width: 40, height: 40, borderRadius: 12, border: '1px solid #eadfd3', background: '#fff', fontSize: 24, cursor: 'pointer' }}
+        >‹</button>
+
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 20, margin: '0 auto 12px', background: 'linear-gradient(145deg,#e9c77f,#9a6a22)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 30 }}>🙏</div>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.14em', color: '#7c1d25' }}>KANTHA PRANTH</div>
+          <h1 style={{ fontFamily: 'Georgia, serif', color: '#241b18', fontSize: 28, margin: '7px 0' }}>
+            {authMode === 'signup' ? 'Create your account' : 'Welcome Back'}
+          </h1>
+          <p style={{ color: '#766b65', fontSize: 12, margin: 0 }}>
+            {authMode === 'signup' ? 'Join the Jain community of Bengaluru.' : 'Sign in to continue to your Jain community.'}
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gap: 14 }}>
+          <label style={{ display: 'grid', gap: 7, fontSize: 11, fontWeight: 700 }}>
+            Email address
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+              placeholder="you@example.com"
+              style={{ width: '100%', height: 50, boxSizing: 'border-box', border: '1px solid #ded1c3', borderRadius: 13, padding: '0 14px', fontSize: 14, background: '#fff' }}
+            />
+          </label>
+
+          <label style={{ display: 'grid', gap: 7, fontSize: 11, fontWeight: 700 }}>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
+              placeholder="Minimum 8 characters"
+              style={{ width: '100%', height: 50, boxSizing: 'border-box', border: '1px solid #ded1c3', borderRadius: 13, padding: '0 14px', fontSize: 14, background: '#fff' }}
+            />
+          </label>
+
+          {authMode === 'login' && (
+            <button type="button" onClick={onResetPassword} disabled={authBusy} style={{ justifySelf: 'end', color: '#7c1d25', fontSize: 11, fontWeight: 800, background: 'none', border: 0, cursor: 'pointer' }}>
+              Forgot password?
+            </button>
+          )}
+
+          {authFeedback && (
+            <div style={{ background: '#fff0ed', border: '1px solid #efc9c2', color: '#8e2926', borderRadius: 12, padding: 10, fontSize: 11 }}>
+              {authFeedback}
+            </div>
+          )}
+
+          <button
+            type="button"
+            disabled={authBusy}
+            onClick={submitAuth}
+            style={{ width: '100%', minHeight: 52, border: 0, borderRadius: 13, background: '#7c1d25', color: '#fff', fontSize: 14, fontWeight: 800, cursor: authBusy ? 'wait' : 'pointer', opacity: authBusy ? .65 : 1 }}
+          >
+            {authBusy ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setAuthFeedback(''); setAuthMode(authMode === 'signup' ? 'login' : 'signup'); }}
+            style={{ border: 0, background: 'none', color: '#7c1d25', fontSize: 11, cursor: 'pointer', padding: 8 }}
+          >
+            {authMode === 'signup' ? 'Already have an account? Sign in' : 'New to Kantha Pranth? Create an account'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 12px', color: '#a3978f', fontSize: 9 }}>
+          <span style={{ flex: 1, height: 1, background: '#eadfd3' }}></span><span>OR</span><span style={{ flex: 1, height: 1, background: '#eadfd3' }}></span>
+        </div>
+
+        <button
+          type="button"
+          onClick={onGuest}
+          style={{ width: '100%', minHeight: 48, border: '1px solid #eadfd3', borderRadius: 13, background: '#fff', color: '#241b18', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}
+        >
+          Continue as guest
+        </button>
+        <small style={{ display: 'block', textAlign: 'center', marginTop: 14, color: '#9a8e86', fontSize: 9 }}>
+          Free email login · No SMS required
+        </small>
       </div>
     </main>;
   }
 
-  return <main className="auth-entry-page auth-welcome-page">
-    <div className="auth-entry-layout">
-      <section className="auth-entry-art welcome-art" aria-label="Welcome to Kantha Pranth">
-        <div className="auth-art-brand"><img src="/kantha-pranth-emblem.svg" alt="" /><b>KANTHA PRANTH</b></div>
-        <div className="welcome-art-center">
-          <div className="welcome-emblem"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
-          <p>JAIN COMMUNITY · BENGALURU</p>
-          <h1>A stronger community<br/>for <em>generations.</em></h1>
-          <span>A beautiful, trusted space for Jain families across Bengaluru to connect, celebrate our heritage, and support one another.</span>
-        </div>
-        <div className="welcome-art-foot"><span>⌖</span> MADE FOR BENGALURU’S JAIN COMMUNITY</div>
-      </section>
-      <section className="auth-entry-panel welcome-panel">
-        <div className="welcome-content">
-          <div className="welcome-brand-lockup"><img src="/kantha-pranth-emblem.svg" alt="" /><div><b>Kantha Pranth</b><small>JAIN COMMUNITY · BENGALURU</small></div></div>
-          <p className="auth-overline">JAI JINENDRA</p>
-          <h2>Our people.<br/>Our heritage.<br/><em>Our community.</em></h2>
-          <p className="welcome-description">Find familiar faces, local businesses, community events, and ways to help — all in one place.</p>
-          <div className="welcome-feature-list">
-            <div><span>♧</span><p><b>Connect</b><small>Stay close to your community</small></p></div>
-            <div><span>▦</span><p><b>Events near you</b><small>Celebrate and take part together</small></p></div>
-            <div><span>⌂</span><p><b>Find services</b><small>Discover trusted local businesses</small></p></div>
-            <div><span>▱</span><p><b>Buy, sell and support</b><small>Share opportunities within the community</small></p></div>
-          </div>
-          <button className="primary full welcome-cta" onClick={() => { setAuthMode('login'); setLoginOpen(true); }}><span>Get started</span><span aria-hidden="true">→</span></button>
-          <button className="guest-link" onClick={onGuest}>Explore as a guest <span aria-hidden="true">↗</span></button>
-          <p className="welcome-foot"><span>✦</span> A trusted platform for our Jain community</p>
-        </div>
-      </section>
+  return <main className="auth-screen auth-welcome-screen">
+    <div className="auth-mobile-shell welcome-shell">
+      <div className="welcome-illustration"><div className="temple-line">☼</div><div className="temple-base">KANTHA<br/>PRANTH</div></div>
+      <div className="welcome-logo">☀</div>
+      <p className="eyebrow center">JAIN COMMUNITY · BENGALURU</p>
+      <h1>KANTHA PRANTH</h1>
+      <p className="welcome-tagline">A trusted platform for our Jain community</p>
+      <div className="welcome-points"><span>Connect</span><i>•</i><span>Support</span><i>•</i><span>Grow</span></div>
+      <div className="welcome-feature-grid">
+        <div><span>👥</span><b>Connect</b><small>with members</small></div>
+        <div><span>⌕</span><b>Discover</b><small>local services</small></div>
+        <div><span>🛒</span><b>Buy & Sell</b><small>within community</small></div>
+        <div><span>📅</span><b>Events</b><small>stay updated</small></div>
+        <div><span>📍</span><b>Local</b><small>information</small></div>
+        <div><span>♥</span><b>Support</b><small>each other</small></div>
+      </div>
+      <button className="primary full welcome-cta" onClick={() => { setAuthMode('login'); setAuthFeedback(''); setLoginOpen(true); }}>Get Started</button>
+      <button className="guest-link" onClick={onGuest}>Continue as guest</button>
+      <small className="welcome-foot">Built for the Jain Community of Bengaluru</small>
     </div>
   </main>;
 }
@@ -1929,7 +1804,7 @@ function AuthScreen({
 function ProfileSetupScreen({ userName, setUserName, profileLocality, setProfileLocality, onSubmit, busy }) {
   return <main className="auth-screen">
     <div className="auth-card profile-setup-card">
-      <div className="auth-logo"><img src="/kantha-pranth-emblem.svg" alt="Kantha Pranth emblem" /></div>
+      <div className="auth-logo">🙏</div>
       <p className="eyebrow">ONE LAST STEP</p>
       <h1>Complete your profile</h1>
       <p className="auth-copy">Tell the community who you are and where you're based. You can change this later.</p>
@@ -1959,7 +1834,7 @@ function ProfileSetupScreen({ userName, setUserName, profileLocality, setProfile
 
 function Page({ title, subtitle, action, children }) { return <div className="page"><div className="page-head"><div><p className="eyebrow">KANTHA PRANTH</p><h1>{title}</h1><p>{subtitle}</p></div>{action}</div>{children}</div>; }
 function SectionHeader({ title, action, onClick }) { return <div className="section-head"><h2>{title}</h2>{action && <button onClick={onClick}>{action} ›</button>}</div>; }
-function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVerifiedUser, onPostChanged, onProfile, onShareInApp }) {
+function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVerifiedUser, onPostChanged, onProfile }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [commentCount, setCommentCount] = useState(post.comments || 0);
@@ -2099,7 +1974,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
     } catch (error) { if (error?.name !== 'AbortError') onToast('Could not share post'); }
   }
 
-  return <article className="post-card" id={typeof post.id === 'string' ? `post-${post.id}` : undefined}>
+  return <article className="post-card">
     <div className="post-top"><button type="button" onClick={() => post.author_id && onProfile?.(post.author_id)} style={{ display:'flex', alignItems:'center', gap:10, border:0, background:'transparent', padding:0, textAlign:'left', cursor:post.author_id ? 'pointer' : 'default' }}><Avatar initials={post.avatar} /><div className="post-author"><b>{post.author}</b><span>{post.time} · {post.area}</span></div></button><button className="more" onClick={() => setShowMenu(x => !x)}>•••</button></div>
     {showMenu && <div style={{ display:'flex', flexWrap:'wrap', gap:7, margin:'8px 0 10px', justifyContent:'flex-end' }}>
       {isOwnPost ? <><button className="soft-btn" onClick={() => { setEditing(true); setShowMenu(false); }}>✏️ Edit</button><button className="soft-btn" onClick={deletePost}>🗑️ Delete</button></> : <><button className="soft-btn" onClick={toggleSaved}>{saved ? '🔖 Saved' : '🔖 Save'}</button><button className="soft-btn" onClick={reportPost}>🚩 Report</button></>}
@@ -2111,11 +1986,11 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
       <textarea rows="4" value={editBody} onChange={e => setEditBody(e.target.value)} />
       <div style={{ display:'flex', gap:8 }}><button className="primary small">Save changes</button><button type="button" className="soft-btn" onClick={() => setEditing(false)}>Cancel</button></div>
     </form> : <><h3>{post.title}</h3><p>{post.text}</p></>}
-    {post.image_url && <img src={post.image_url} alt={`Photo shared with ${post.title || 'community post'}`} loading="lazy" style={{ width:'100%', maxHeight:360, objectFit:'cover', borderRadius:14, marginTop:10 }} />}
+    {post.image_url && <img src={post.image_url} alt="" style={{ width:'100%', maxHeight:360, objectFit:'cover', borderRadius:14, marginTop:10 }} />}
     <div className="post-actions">
       <button disabled={busy} onClick={toggleLike}>{liked ? '♥' : '♡'} {likeCount}</button>
       <button onClick={openComments}>◌ {commentCount}</button>
-      <button onClick={sharePost}>↗ Share</button><button onClick={() => onShareInApp?.({ title:post.title || 'Community post', text:post.text || '', queryKey:'post', id:post.id })}>✉ Send</button>
+      <button onClick={sharePost}>↗ Share</button>
       <button onClick={toggleSaved}>{saved ? '🔖' : '＋'} {saved ? 'Saved' : 'Save'}</button>
       {!isOwnPost && <button onClick={reportPost} style={{ color:'#9b2c2c' }}>🚩 Report</button>}
     </div>
@@ -2129,7 +2004,7 @@ function PostCard({ post, onToast, currentUserId, authenticated, guestMode, isVe
 }
 function EventCard({ event, onClick }) { return <button className="event-card" onClick={onClick}><div className="event-date"><b>{event.date.split(' ')[0]}</b><span>{event.date.split(' ')[1]}</span></div><div className="event-icon">{event.emoji}</div><div className="event-info"><Pill>{event.tag}</Pill><h3>{event.title}</h3><p>◷ {event.time} · ⌖ {event.area}</p></div><span className="chevron">›</span></button>; }
 function ServiceCard({ service, onToast }) {
-  const websiteUrl = /^https?:\/\//i.test(service.website || '') ? service.website : '';
+  const websiteUrl = /^https?:\\/\\//i.test(service.website || '') ? service.website : '';
   return <article className="service-card">
     <div className="service-icon">{service.icon || '✦'}</div>
     <div className="service-info">
