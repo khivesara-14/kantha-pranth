@@ -236,11 +236,11 @@ export default function Home() {
     const name = fd.get('name')?.toString().trim() || '';
     const category = fd.get('category')?.toString() || 'Other';
     const description = fd.get('description')?.toString().trim() || '';
-    const phone = fd.get('phone')?.toString().replace(/\\D/g, '') || '';
+    const phone = fd.get('phone')?.toString().replace(/\D/g, '') || '';
     let website = fd.get('website')?.toString().trim() || '';
     if (name.length < 2) return setToast('Enter your business name');
     if (phone && phone.length !== 10) return setToast('Enter a valid 10-digit contact number');
-    if (website && !/^https?:\\/\\//i.test(website)) website = `https://${website}`;
+    if (website && !/^https?:\/\//i.test(website)) website = `https://${website}`;
     setBusinessBusy(true);
     try {
       const { data: localityRow, error: localityError } = await supabase.from('localities').select('id').eq('name', locality).maybeSingle();
