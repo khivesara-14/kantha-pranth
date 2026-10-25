@@ -1,5 +1,4 @@
 import './globals.css';
-import './jain-auth.css';
 import AuthGate from '../components/AuthGate';
 
 const siteUrl = 'https://kantha-pranth.vercel.app';
